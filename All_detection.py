@@ -366,7 +366,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
         f.write(res[1][0]+'\n')
         print(res[1][0])
     # 印出Barcode/QRCode內容
-    print("Barcode/QRCode Part:\n")
+    print("Barcode/QRCode Part:\n\n")
     if decode_result!=[]:
         for res in decode_result:
             fc.write(res + '\n')
@@ -383,7 +383,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    model_path = r"D:\PyCharm\YOLO_v4-master\yolov4-obj_best_416.ckpt.meta"
+    model_path = r"D:\PyCharm\Yolo_v4_Detection\yolov4-obj_best_416.ckpt.meta"
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
     GPU_ratio = 0.8
     #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
