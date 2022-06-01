@@ -220,16 +220,28 @@ def draw_img(img, boxes, score, label, word_dict, color_table,):
             M[1, 2] += (nH / 2) - cY
 
             return cv2.warpAffine(image, M, (nW, nH))
-
+        # 圖片銳化函式
+        def sharpen(img, sigma=50):
+            # sigma = 5、15、25
+            blur_img = cv2.GaussianBlur(img, (0, 0), sigma)
+            usm = cv2.addWeighted(img, 1.5, blur_img, -0.8, 0)  # 以原圖 : 模糊圖片= 1.5 : -0.5 的比例進行混合。
+            return usm
         ##########################-decode-#########################
-        # decoded_str = list()
+        # 對barcode進行轉正處理
         if curr_label == "barcode":
             gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
-            decoded_str = barcode(gray)
+            sharpen_img = sharpen(gray, 20)  # sigma值設太大會導致偵數大幅下降
+            decoded_str = barcode(sharpen_img)
         else:
             gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
-            decoded_str = pyzbar.decode(gray)
-
+            sharpen_img = sharpen(gray, 10)
+            decoded_str = pyzbar.decode(sharpen_img)
+        ###########################################################
+        # 直接覆寫前面的curr_color(從隨機變成固定)
+        if curr_label == label[0]:
+            curr_color = (0, 0, 205)  # barcode 紅色
+        else:
+            curr_color = (215, 0, 0)  # QRcode 藍色
         ###########################################################
         # draw box
         cv2.rectangle(img, (x_min, y_min), (x_max, y_max), curr_color)
