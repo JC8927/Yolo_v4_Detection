@@ -9,7 +9,7 @@ import csv
 from paddleocr import PaddleOCR,draw_ocr
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-
+from pathlib import Path
 from PIL import Image,ImageDraw
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -348,9 +348,9 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     #####################################################
 
     # paddleOCR辨識
-    ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
-    img_path = './input_dir/(85).jpg'
-    result = ocr.ocr(img_path, cls=False)
+    # ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
+    # img_path = './input_dir/(2).jpg'
+    # result = ocr.ocr(img_path, cls=False)
     # decode_result=pyz_decoded_str
 
 
@@ -365,46 +365,120 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     #     print(res[1][0])
     #     # result_list.append(res[1][0])
     result_path = './result_dir/result_csv.csv'
-    CompanyName = ''
-    PO_No=''
-    PN=''
-    Oty=''
-    Batch=''
 
-    with open(result_path, 'w', newline='') as csvfile:
+
+    # result_path = '1.csv'
+
+
+    # 資料夾裡面每個檔案
+    pathlist = sorted(Path("./input_dir/").glob('*'))  # 用哪個資料夾裡的檔案
+
+    # 公司/項目
+    THALES = (' ', 'Company', 'Date', 'Po no', 'PN', 'Batch#', 'First EID', 'Last EID', 'Quantity', 'COO', 'Sleeve#')
+    EDOM = (' ', 'Company', 'Gemalto PN', 'EDOM PN', 'LOT#', 'Date code', 'Quantity', 'COO', 'MSL', 'BOX#')
+    AKOUSTIS= (' ', 'Company', 'Part#', 'LOT#', 'MFG#', 'DTE', 'QTY')
+    # CSV
+    with open(result_path, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer_2 = csv.writer(csvfile, quoting=csv.QUOTE_ALL, delimiter=':')
-        for line in result:
-            line_str = str(line[1][0])
-            if 'THALES' in line_str:
-                CompanyName = 'THALES'
-                writer.writerow(["CompanyName", CompanyName])
-                print('**********************************YES')
-            elif 'PO No.:' in line_str:
-                processed_list = line_str.split(':')
-                writer.writerow(processed_list)
-                print('**********************************YES')
-            elif 'PN' in line_str:
-                processed_list = line_str.split(':')
-                writer.writerow(processed_list)
-                print('**********************************YES')
-            elif 'Qty' in line_str:
-                processed_list = line_str.split(':')
-                writer.writerow(processed_list)
-                print('**********************************YES')
-            elif 'Batch' in line_str:
-                processed_list = line_str.split(':')
-                writer.writerow(processed_list)
-                print('**********************************YES')
-            print(line_str)
+        for path in pathlist:  # path每張檔案的路徑
+            Comp = 0  # 公司
+            img_path = os.path.join('.', path)
+            # result = ocr_model.ocr(img_path)  # OCR
+            # paddleOCR辨識
+            ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
+            # img_path = './input_dir/(2).jpg'
+            result = ocr.ocr(img_path, cls=False)
+            # 找是哪家公司
+            for line in result:
+                if 'THALES' in line[1][0]:
+                    Comp = 1
+                    break
+                elif 'EDOM' in line[1][0]:
+                    Comp = 2
+                    break
+                elif 'XXXXX' in line[1][0]:
+                    Comp = 3
+                    break
+                elif 'XXXXX' in line[1][0]:
+                    Comp = 4
+                    break
+                elif 'AKOUSTIS' in line[1][0]:
+                    Comp = 5
+                    break
+
+            # AKOUSTIS
+            if (Comp == 5):
+                writer.writerow(AKOUSTIS)  # 列出公司有的項目 (之後看寫在哪 只用跑一次)
+                Company, Part, LOT, MFG, DTE, QTY = 1, 2, 3, 4, 5,6 # 哪一項放在第幾格
+                List = ['-', '-', '-', '-', '-', '-', '-']
+                EID = 0  # 換行用
+                s = str(path)
+                List[0] = s.strip("/content/LABEL/")  # 第一格我放圖片名稱
+                overwrite = [0, 0, 0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
+                for line in result:
+                    line2 = line[1][0]
+                    print(line2)
+
+                    # Company
+                    if 'AKOUSTIS' in line[1][0] and overwrite[Company] == 0:  # 那行有公司名
+                        List[Company] = 'AKOUSTIS'  # 填公司名
+                        overwrite[Company] = 1  # 填了
+                        EID = 0  # 不用換行
+
+                    # Part#
+                    elif ('Part' in line[1][0]) and overwrite[Part] == 0:
+                        if ':' in line[1][0] :
+                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                        elif'#'in line[1][0] :
+                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                        if len(line2) > 1: List[Part] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
+                        overwrite[Part] = 1  # 填了
+                        EID = 0  # 不用換行
+
+                    # LOT#
+                    elif ('LOT' in line[1][0] or 'P/N' in line[1][0]) and overwrite[LOT] == 0:
+                        if ':' in line[1][0] :
+                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                        elif'#'in line[1][0] :
+                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                        if len(line2) > 1: List[LOT] = line2[1].lstrip(' ')
+                        overwrite[LOT] = 1
+                        EID = 0
+
+                    # MFG#
+                    elif 'MFG' in line[1][0] and overwrite[MFG] == 0:
+                        if ':' in line[1][0] :
+                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                        elif'#'in line[1][0] :
+                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                        if len(line2) > 1: List[MFG] = line2[1].lstrip(' ')
+                        overwrite[MFG] = 1
+                        EID = 0
+
+                    # DTE
+                    elif 'DTE' in line[1][0] and overwrite[DTE] == 0:
+                        if ':' in line[1][0] :
+                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                        elif'#'in line[1][0] :
+                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                        if len(line2) > 1: List[DTE] = line2[1].lstrip(' ')
+                        overwrite[DTE] = 1
+                        EID = 0
+
+                    # QTY
+                    elif 'QTY' in line[1][0] and overwrite[QTY] == 0:
+                        if ':' in line[1][0] :
+                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                        elif'#'in line[1][0] :
+                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                        if len(line2) > 1: List[QTY] = line2[1].lstrip(' ')
+                        overwrite[QTY] = 1
+                        EID = 0
 
 
+                writer.writerow(List)  # 印出來
 
 
-
-
-
-    # 印出字元
     # print("Text Part:\n")
     # for res in result:
     #     f.write(res[1][0]+'\n')
