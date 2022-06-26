@@ -349,7 +349,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
 
     # paddleOCR辨識
     ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
-    img_path = './input_dir/(85).jpg'
+    img_path ='.\Input_dir\AKOUSTIS\(1).jpg'
     result = ocr.ocr(img_path, cls=False)
     # decode_result=pyz_decoded_str
 

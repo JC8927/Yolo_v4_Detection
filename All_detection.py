@@ -332,7 +332,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
 
     #----YOLO v4 init
     yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
-    img = cv2.imread('./input_dir/15.jpg')
+    img = cv2.imread('./input_dir/AKOUSTIS/ (1).jpg')
 
     pic = numpy.array(img)
     # ----YOLO v4 detection
