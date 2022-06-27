@@ -364,7 +364,6 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     # for res in result:
     #     print(res[1][0])
     #     # result_list.append(res[1][0])
-    result_path = './result_dir/result_csv.csv'
 
     # 資料夾裡面每個檔案
     pathlist = sorted(Path("./input_dir/ALL_company/").glob('*'))  # 用哪個資料夾裡的檔案
@@ -376,38 +375,63 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     AKOUSTIS = (' ', 'Company', 'Part#', 'LOT#', 'MFG#', 'DTE', 'QTY')
     Silicon = (' ', 'Company', 'Country', 'SUPPLIER', 'DATECODE', 'QTY', 'CODE', 'SEALDATE')
     # CSV
-    with open(result_path, 'a', newline='') as csvfile:
-        writer = csv.writer(csvfile)
 
-        for path in pathlist:  # path每張檔案的路徑
 
-            Comp = 0  # 公司
-            img_path = os.path.join('.', path)
-            # result = ocr_model.ocr(img_path)  # OCR
-            # paddleOCR辨識
-            ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
-            result = ocr.ocr(img_path, cls=False)
-            # 找是哪家公司
-            for line in result:
-                if 'THALES' in line[1][0]:
-                    Comp = 1
-                    break
-                elif 'EDOM' in line[1][0]:
-                    Comp = 2
-                    break
-                elif 'SkyT' in line[1][0]:
-                    Comp = 3
-                    break
-                elif 'Silicon' in line[1][0]:
-                    Comp = 4
-                    break
-                elif 'AKOUSTIS' in line[1][0]:
-                    Comp = 5
-                    break
 
-            # THALES
-            if (Comp == 1):
-                writer.writerow(THALES)  # 列出公司有的項目 (之後看寫在哪 只用跑一次)
+    for path in pathlist:  # path每張檔案的路徑
+
+        Comp = 0  # 公司
+        img_path = os.path.join('.', path)
+        # result = ocr_model.ocr(img_path)  # OCR
+        # paddleOCR辨識
+        ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
+        result = ocr.ocr(img_path, cls=False)
+        # 找是哪家公司
+        for line in result:
+            if 'THALES' in line[1][0]:
+                Comp = 1
+                break
+            elif 'EDOM' in line[1][0]:
+                Comp = 2
+                break
+            elif 'SkyT' in line[1][0]:
+                Comp = 3
+                break
+            elif 'Silicon' in line[1][0]:
+                Comp = 4
+                break
+            elif 'AKOUSTIS' in line[1][0]:
+                Comp = 5
+                break
+
+        # 檢查是否存在各公司資料夾，不存在的話就創立一個新的(包含標頭)
+        if not os.path.isfile('./result_dir/Company_OCR/THALES_csv.csv'):
+            with open('./result_dir/Company_OCR/THALES_csv.csv', 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(THALES)  # 列出公司有的項目
+        if not os.path.isfile('./result_dir/Company_OCR/EDOM_csv.csv'):
+            with open('./result_dir/Company_OCR/EDOM_csv.csv', 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(EDOM)  # 列出公司有的項目
+        if not os.path.isfile('./result_dir/Company_OCR/SkyTra_csv.csv'):
+            with open('./result_dir/Company_OCR/SkyTra_csv.csv', 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(SkyTra)  # 列出公司有的項目
+        if not os.path.isfile('./result_dir/Company_OCR/Silicon_csv.csv'):
+            with open('./result_dir/Company_OCR/Silicon_csv.csv', 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(Silicon)  # 列出公司有的項目 (之後看寫在哪 只用跑一次)
+        if not os.path.isfile('./result_dir/Company_OCR/AKOUSTIS_csv.csv'):
+            with open('./result_dir/Company_OCR/AKOUSTIS_csv.csv', 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(AKOUSTIS)  # 列出公司有的項目
+
+
+        # THALES
+        if (Comp == 1):
+            result_path = './result_dir/Company_OCR/THALES_csv.csv'
+            with open(result_path, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
                 Company, Date, Po, PN, Batch, FirstE, LastE, QTY, COO, Sle, BOX = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11  # 哪一項放在第幾格
                 List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
                 EID = 0  # 換行用
@@ -567,16 +591,11 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                         EID = 0
                 writer.writerow(List)  # 印出來
 
-                # MSL
-                # elif ('MSL' in line[1][0] or 'msl' in line[1][0]) and overwrite[MSL]==0:
-                #   if len(line2)>1:List[MSL]=line2[1].lstrip(' ') #List.append(line2[1].lstrip(' '))
-                #   else:List[MSL]=line2[0][3:].lstrip(' ') #List.append(line2[0][3:].lstrip(' '))
-                #   overwrite[MSL]=1
-                #   EID=0
-
-            # EDOM
-            elif (Comp == 2):
-                writer.writerow(EDOM)
+        # EDOM
+        elif (Comp == 2):
+            result_path = './result_dir/Company_OCR/EDOM_csv.csv'
+            with open(result_path, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
                 Company, GPN, EPN, Lot, DateCo, QTY, COO, MSL, BOX, REEL = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
                 List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
                 EID = 0
@@ -699,9 +718,14 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                         EID = 0
                 writer.writerow(List)  # 印出來
 
-            # SkyTra
-            elif (Comp == 3):
-                writer.writerow(SkyTra)
+        # SkyTra
+        elif (Comp == 3):
+            print(r"////////////////////////////////////")
+            print("Comp = "+str(Comp))
+            print(r"////////////////////////////////////")
+            result_path = './result_dir/Company_OCR/SkyTra_csv.csv'
+            with open(result_path, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
                 Company, PartID, DC, QTY, BIN, DATE = 1, 2, 3, 4, 5, 6
                 List = ['-', '-', '-', '-', '-', '-', '-']
                 s = str(path)
@@ -756,9 +780,11 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                             pre = DATE
                 writer.writerow(List)
 
-            # Silicon
-            elif (Comp == 4):
-                writer.writerow(Silicon)
+        # Silicon
+        elif (Comp == 4):
+            result_path = './result_dir/Company_OCR/Silicon_csv.csv'
+            with open(result_path, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
                 Company, Country, SUPPLIER, DATECODE, QTY, CODE, SEALDATE = 1, 2, 3, 4, 5, 6, 7
                 List = ['-', '-', '-', '-', '-', '-', '-', '-']
                 EID = 0
@@ -817,9 +843,11 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                         EID = 0
                 writer.writerow(List)
 
-            # AKOUSTIS
-            elif (Comp == 5):
-                writer.writerow(AKOUSTIS)  # 列出公司有的項目 (之後看寫在哪 只用跑一次)
+        # AKOUSTIS
+        elif (Comp == 5):
+            result_path = './result_dir/Company_OCR/AKOUSTIS_csv.csv'
+            with open(result_path, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
                 Company, Part, LOT, MFG, DTE, QTY = 1, 2, 3, 4, 5,6 # 哪一項放在第幾格
                 List = ['-', '-', '-', '-', '-', '-', '-']
                 EID = 0  # 換行用
