@@ -1,0 +1,24 @@
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\EDOM+T\ (2).jpg,EDOM,A1719565,TRIO-EUICC-MFONLY,4500248909, 1801 II,110,China,1,1/1,-
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\EDOM+T\ (3).jpg,EDOM,-,MFXS-A028a-MFOCMW,4500349909,2123,3000,China,1,-,-
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\EDOM+T\ (4).jpg,EDOM,A1984965,MFXS-A028a-MFOCMW,4500349909,2123,3000,China,1,-,1
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\EDOM+T\ (5).jpg,EDOM,A1984965,MFXS-A028a-MFOCMW,4500349909,2123,3000,China,1,-,1
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\EDOM+T\ (8).jpg,EDOM,A1070435,MFF2-TEST-CMW500,4500230958,1824,500,France,3,-,1
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\EDOM+T\ (9).jpg,EDOM,A1070435,MFF2-TEST-CMW500,4500230958,1824,500,France,3,-,1
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\ALL_company\EDOM(2).jpg,EDOM,A1719565,TRIO-EUICC-MFONLY,4500248909, 1801 II,110,China,1,1/1,-
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\ALL_company\EDOM(3).jpg,EDOM,-,MFXS-A028a-MFOCMW,4500349909,2123,3000,China,1,-,-
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\ALL_company\EDOM(4).jpg,EDOM,A1984965,MFXS-A028a-MFOCMW,4500349909,2123,3000,China,1,-,1
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\ALL_company\EDOM(5).jpg,EDOM,A1984965,MFXS-A028a-MFOCMW,4500349909,2123,3000,China,1,-,1
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\ALL_company\EDOM(8).jpg,EDOM,A1070435,MFF2-TEST-CMW500,4500230958,1824,500,France,3,-,1
+ ,Company,Gemalto PN,EDOM PN,LOT#,Date code,Quantity,COO,MSL,BOX#,REEL#
+input_dir\ALL_company\EDOM(9).jpg,EDOM,A1070435,MFF2-TEST-CMW500,4500230958,1824,500,France,3,-,1
