@@ -332,11 +332,8 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
 def photo_obj_detection(model_path,GPU_ratio=0.8):
 
     #----YOLO v4 init
-    # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
-    # img_path = './input_dir/(2).jpg'
-
-
-
+    yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
+    print("yolo initial done")
 
     # 匯出辨識結果(txt)
     # result_path = './result_dir/result_txt.txt'
@@ -366,10 +363,44 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
 
         Comp = 0  # 公司
         img_path = os.path.join('.', path)
+        # ----YOLO v4 variable init
+        img = cv2.imread(img_path)
 
-        # paddleOCR辨識
+        # ocr_path = './result_dir/result_pic_for_ocr.jpg'
+        # # 儲存原始照片
+        # pic = numpy.array(img)
+        # cv2.imwrite(ocr_path, img)
+
+        # ---paddleOCR detection-----------------
         ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
-        result = ocr.ocr(img_path, cls=False)# OCR
+        result = ocr.ocr(img_path, cls=False)  # OCR
+        # try:#移除"ocr用"產生的相片
+        #     os.remove(ocr_path)
+        # except:
+        #     pass
+        # 印出字元
+        print("Text Part:\n")
+        for res in result:
+            print(res[1][0])
+
+        # ----YOLO v4 detection-----------------
+        yolo_img, pyz_decoded_str = yolo_v4.detection(img)
+        decode_result = pyz_decoded_str
+        # 印出Barcode/QRCode內容
+        print("Barcode/QRCode Part:\n\n")
+        if decode_result != []:
+            for res in decode_result:
+                print(res)
+        else:
+            print("Decode Fail")
+        #####################################################
+
+        # 儲存照片路徑
+        # result_img_path = "./result_dir/"+str(path)+".jpg"
+        # # 儲存yolo辨識照片
+        # cv2.imwrite(result_img_path, yolo_img)
+        #####################################################
+
         # 找是哪家公司
         for line in result:
             if 'THALES' in line[1][0]:

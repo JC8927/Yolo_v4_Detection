@@ -332,24 +332,24 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
 
     #----YOLO v4 init
     yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
-    img = cv2.imread('./input_dir/AKOUSTIS/ (1).jpg')
+    img = cv2.imread('./input_dir/ALL_company/THALES(11).jpg')
 
     pic = numpy.array(img)
     # ----YOLO v4 detection
     yolo_img ,pyz_decoded_str= yolo_v4.detection(img)
 
-    #####################################################
-    # 儲存原始照片
-    cv2.imwrite('./result_dir/result_pic_orig.jpg', pic)
-    # input("Please press the Enter key to proceed")
-    # 儲存yolo辨識照片
-    cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
-    # input("Please press the Enter key to proceed")
-    #####################################################
+    # #####################################################
+    # # 儲存原始照片
+    # cv2.imwrite('./result_dir/result_pic_orig.jpg', pic)
+    # # input("Please press the Enter key to proceed")
+    # # 儲存yolo辨識照片
+    # cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
+    # # input("Please press the Enter key to proceed")
+    # #####################################################
     # paddleOCR辨識
     ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
-    img_path = './result_dir/result_pic_orig.jpg'
-    result = ocr.ocr(img_path, cls=False)
+    img_path = './input_dir/ALL_company/THALES(11).jpg'
+    result = ocr.ocr('./input_dir/ALL_company/THALES(11).jpg', cls=False)
     decode_result=pyz_decoded_str
     # 匯出辨識結果(txt)
     result_path = './result_dir/result_txt.txt'
@@ -386,5 +386,5 @@ if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
     GPU_ratio = 0.8
-    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
-    #photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
+    # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
+    photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
