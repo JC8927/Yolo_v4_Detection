@@ -100,96 +100,99 @@ def model_restore_from_pb(pb_path,node_dict,GPU_ratio=None):
             tf_dict[key] = node
         return sess,tf_dict
 
-# class Yolo_v4():
-#     def __init__(self,model_path,GPU_ratio=0.2):
-#         #----var
-#         class_num =2  # 80,36, 1
-#         height =416  # 416, 608
-#         width = 416  # 416, 608
-#         score_thresh = 0.7  # 0.5
-#         iou_thresh = 0.03  # 0.213
-#         max_box = 20  # 50
-#         anchors = 12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401
-#         anchors = np.asarray(anchors).astype(np.float32).reshape([-1, 3, 2])
-#         name_file = "./barcode.names"
-#
-#         node_dict = {"input": "Placeholder:0",
-#                      "pre_boxes": "concat_9:0",
-#                      "pre_score": "concat_10:0",
-#                      "pre_label": "concat_11:0",
-#                      }
-#
-#         #----model extension check
-#         if model_path[-2:] == 'pb':
-#             sess, tf_dict = model_restore_from_pb(model_path, node_dict,GPU_ratio=GPU_ratio)
-#             tf_input = tf_dict['input']
-#             tf_pre_boxes = tf_dict["pre_boxes"]
-#             tf_pre_score = tf_dict['pre_score']
-#             tf_pre_label = tf_dict['pre_label']
-#         else:
-#             width = int(model_path.split("\\")[-1].split(".")[0].split("_")[-1])  # 416, 608
-#             height = width  # 416, 608
-#             yolo = YOLO()
-#             tf_input = tf.placeholder(dtype=tf.float32, shape=[1, None, None, 3])
-#
-#             feature_y1, feature_y2, feature_y3 = yolo.forward(tf_input, class_num, isTrain=False)
-#             tf_pre_boxes, tf_pre_score, tf_pre_label = get_predict_result(feature_y1, feature_y2, feature_y3,
-#                                                                  anchors[2], anchors[1], anchors[0],
-#                                                                  width, height, class_num,
-#                                                                  score_thresh=score_thresh,
-#                                                                  iou_thresh=iou_thresh,
-#                                                                  max_box=max_box)
-#             init = tf.global_variables_initializer()
-#
-#             saver = tf.train.Saver()
-#             #----GPU ratio setting
-#             config = tf.ConfigProto(log_device_placement=True,  # 印出目前的運算是使用CPU或GPU
-#                                     allow_soft_placement=True,  # 當設備不存在時允許tf選擇一个存在且可用的設備來繼續執行程式
-#                                     )
-#             if GPU_ratio is None:
-#                 config.gpu_options.allow_growth = True  # 依照程式執行所需要的資料來自動調整
-#             else:
-#                 config.gpu_options.per_process_gpu_memory_fraction = GPU_ratio  # 手動限制GPU資源的使用
-#             sess = tf.Session(config=config)
-#             sess.run(init)
-#             saver.restore(sess, model_path[:-5])
-#
-#         print("Height: {}, width: {}".format(height, width))
-#
-#         #----label to class name
-#         label_dict = tools.get_word_dict(name_file)
-#
-#         #----color of corresponding names
-#         color_table = tools.get_color_table(class_num)
-#
-#
-#         #----local var to global
-#         self.width = width
-#         self.height = height
-#         self.tf_input = tf_input
-#         self.pre_boxes = tf_pre_boxes
-#         self.pre_score = tf_pre_score
-#         self.pre_label = tf_pre_label
-#         self.sess = sess
-#         self.label_dict = label_dict
-#         self.color_table = color_table
-#
-#
-#     def detection(self,img_bgr):
-#         img_4d = cv2.resize(img_bgr,(self.width,self.height))
-#         img_4d = img_4d[:,:,::-1]
-#         img_4d = img_4d.astype(np.float32)
-#         img_4d /= 255 #255,123, 18
-#         img_4d = np.expand_dims(img_4d,axis=0)
-#
-#         boxes, score, label = self.sess.run([self.pre_boxes, self.pre_score, self.pre_label],
-#                                             feed_dict={self.tf_input:img_4d})
-#         # test box
-#         print("boxes: ",boxes)
-#         print("score:",score)
-#         img_bgr ,decoded_str= tools.draw_img(img_bgr, boxes, score, label, self.label_dict, self.color_table)
-#
-#         return img_bgr,decoded_str
+class Yolo_v4():
+    def __init__(self,model_path,GPU_ratio=0.2):
+        #----var
+        class_num =2  # 80,36, 1
+        height =416  # 416, 608
+        width = 416  # 416, 608
+        score_thresh = 0.7  # 0.5
+        iou_thresh = 0.03  # 0.213
+        max_box = 20  # 50
+        anchors = 12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401
+        anchors = np.asarray(anchors).astype(np.float32).reshape([-1, 3, 2])
+        name_file = "./barcode.names"
+
+        node_dict = {"input": "Placeholder:0",
+                     "pre_boxes": "concat_9:0",
+                     "pre_score": "concat_10:0",
+                     "pre_label": "concat_11:0",
+                     }
+
+        #----model extension check
+        if model_path[-2:] == 'pb':
+            sess, tf_dict = model_restore_from_pb(model_path, node_dict,GPU_ratio=GPU_ratio)
+            tf_input = tf_dict['input']
+            tf_pre_boxes = tf_dict["pre_boxes"]
+            tf_pre_score = tf_dict['pre_score']
+            tf_pre_label = tf_dict['pre_label']
+        else:
+            width = int(model_path.split("\\")[-1].split(".")[0].split("_")[-1])  # 416, 608
+            height = width  # 416, 608
+            yolo = YOLO()
+            tf_input = tf.placeholder(dtype=tf.float32, shape=[1, None, None, 3])
+
+            feature_y1, feature_y2, feature_y3 = yolo.forward(tf_input, class_num, isTrain=False)
+            tf_pre_boxes, tf_pre_score, tf_pre_label = get_predict_result(feature_y1, feature_y2, feature_y3,
+                                                                 anchors[2], anchors[1], anchors[0],
+                                                                 width, height, class_num,
+                                                                 score_thresh=score_thresh,
+                                                                 iou_thresh=iou_thresh,
+                                                                 max_box=max_box)
+            init = tf.global_variables_initializer()
+
+            saver = tf.train.Saver()
+            #----GPU ratio setting
+            config = tf.ConfigProto(log_device_placement=True,  # 印出目前的運算是使用CPU或GPU
+                                    allow_soft_placement=True,  # 當設備不存在時允許tf選擇一个存在且可用的設備來繼續執行程式
+                                    )
+            if GPU_ratio is None:
+                config.gpu_options.allow_growth = True  # 依照程式執行所需要的資料來自動調整
+            else:
+                config.gpu_options.per_process_gpu_memory_fraction = GPU_ratio  # 手動限制GPU資源的使用
+            sess = tf.Session(config=config)
+            sess.run(init)
+            saver.restore(sess, model_path[:-5])
+
+        print("Height: {}, width: {}".format(height, width))
+
+        #----label to class name
+        label_dict = tools.get_word_dict(name_file)
+
+        #----color of corresponding names
+        color_table = tools.get_color_table(class_num)
+
+
+        #----local var to global
+        self.width = width
+        self.height = height
+        self.tf_input = tf_input
+        self.pre_boxes = tf_pre_boxes
+        self.pre_score = tf_pre_score
+        self.pre_label = tf_pre_label
+        self.sess = sess
+        self.label_dict = label_dict
+        self.color_table = color_table
+
+
+    def detection(self,img_bgr):
+        img_4d = cv2.resize(img_bgr,(self.width,self.height))
+        img_4d = img_4d[:,:,::-1]
+        img_4d = img_4d.astype(np.float32)
+        img_4d /= 255 #255,123, 18
+        img_4d = np.expand_dims(img_4d,axis=0)
+
+        boxes, score, label = self.sess.run([self.pre_boxes, self.pre_score, self.pre_label],
+                                            feed_dict={self.tf_input:img_4d})
+        # test box
+        print("boxes: ",boxes)
+        print("score:",score)
+        img_bgr ,decoded_str= tools.draw_img(img_bgr, boxes, score, label, self.label_dict, self.color_table)
+
+        return img_bgr,decoded_str
+
+
+
 
 def real_time_obj_detection(model_path,GPU_ratio=0.2):
     #----var
@@ -327,31 +330,12 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
     cv2.destroyAllWindows()
 
 def photo_obj_detection(model_path,GPU_ratio=0.8):
-    #----var
-
 
     #----YOLO v4 init
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
-    # img = cv2.imread('./input_dir/(2).jpg')
-    #
-    # pic = numpy.array(img)
-    # ----YOLO v4 detection
-    # yolo_img ,pyz_decoded_str= yolo_v4.detection(img)
-
-    #####################################################
-    # 儲存原始照片
-    # cv2.imwrite('./result_dir/result_pic_orig.jpg', pic)
-    # input("Please press the Enter key to proceed")
-    # 儲存yolo辨識照片
-    # cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
-    # input("Please press the Enter key to proceed")
-    #####################################################
-
-    # paddleOCR辨識
-    # ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
     # img_path = './input_dir/(2).jpg'
-    # result = ocr.ocr(img_path, cls=False)
-    # decode_result=pyz_decoded_str
+
+
 
 
     # 匯出辨識結果(txt)
@@ -382,10 +366,10 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
 
         Comp = 0  # 公司
         img_path = os.path.join('.', path)
-        # result = ocr_model.ocr(img_path)  # OCR
+
         # paddleOCR辨識
         ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
-        result = ocr.ocr(img_path, cls=False)
+        result = ocr.ocr(img_path, cls=False)# OCR
         # 找是哪家公司
         for line in result:
             if 'THALES' in line[1][0]:
@@ -924,6 +908,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     # fc.close()
     # yolo_v4.sess.close()
     cv2.destroyAllWindows()
+    print("done")
 
 
 
