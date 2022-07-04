@@ -834,7 +834,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                 overwrite[0] = 1
                 if decode_result != []:
                     wrote = decode_result
-                    for a in range(len(overwrite) - 2):
+                    for a in range(len(overwrite)):
                         if overwrite[a] == 0:
                             for res in range(len(decode_result)):
                                 if wrote[res] != 'wrote' and decode_result[res] != '':
@@ -910,7 +910,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                 overwrite[0] = 1
                 if decode_result != []:
                     wrote = decode_result
-                    for a in range(len(overwrite) - 2):
+                    for a in range(len(overwrite)):
                         if overwrite[a] == 0:
                             for res in range(len(decode_result)):
                                 if wrote[res] != 'wrote' and decode_result[res] != '':
@@ -1003,7 +1003,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                 overwrite[0] = 1
                 if decode_result != []:
                     wrote = decode_result
-                    for a in range(len(overwrite) - 2):
+                    for a in range(len(overwrite)):
                         if overwrite[a] == 0:
                             for res in range(len(decode_result)):
                                 if wrote[res] != 'wrote' and decode_result[res] != '':
