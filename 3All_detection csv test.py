@@ -613,6 +613,20 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                         List[LastE] = line2[0].lstrip(' ')
                         overwrite[LastE] = 1
                         EID = 0
+
+                #######################################
+                overwrite[0] = 1
+                if decode_result != []:
+                    wrote = decode_result
+                    for a in range(len(overwrite) - 2):
+                        if overwrite[a] == 0:
+                            for res in range(len(decode_result)):
+                                if wrote[res] != 'wrote' and decode_result[res] != '':
+                                    print(decode_result[res])
+                                    List[a] = decode_result[res]
+                                    overwrite[a] = 1
+                                    wrote[res] = 'wrote'
+                                    break
                 writer.writerow(List)  # 印出來
 
         # EDOM
@@ -740,6 +754,19 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                             List[MSL] = line2[0][3:].lstrip(' ')
                         overwrite[MSL] = 1
                         EID = 0
+                #######################################
+                overwrite[0] = 1
+                if decode_result != []:
+                    wrote = decode_result
+                    for a in range(len(overwrite) - 2):
+                        if overwrite[a] == 0:
+                            for res in range(len(decode_result)):
+                                if wrote[res] != 'wrote' and decode_result[res] != '':
+                                    print(decode_result[res])
+                                    List[a] = decode_result[res]
+                                    overwrite[a] = 1
+                                    wrote[res] = 'wrote'
+                                    break
                 writer.writerow(List)  # 印出來
 
         # SkyTra
@@ -802,6 +829,20 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                         elif overwrite[DATE] == 0:
                             write = 1
                             pre = DATE
+
+                #######################################
+                overwrite[0] = 1
+                if decode_result != []:
+                    wrote = decode_result
+                    for a in range(len(overwrite) - 2):
+                        if overwrite[a] == 0:
+                            for res in range(len(decode_result)):
+                                if wrote[res] != 'wrote' and decode_result[res] != '':
+                                    print(decode_result[res])
+                                    List[a] = decode_result[res]
+                                    overwrite[a] = 1
+                                    wrote[res] = 'wrote'
+                                    break
                 writer.writerow(List)
 
         # Silicon
@@ -865,6 +906,19 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                             List[SEALDATE] = line[1][0].lstrip(r' SEALDTealate')
                         overwrite[SEALDATE] = 1
                         EID = 0
+                #######################################
+                overwrite[0] = 1
+                if decode_result != []:
+                    wrote = decode_result
+                    for a in range(len(overwrite) - 2):
+                        if overwrite[a] == 0:
+                            for res in range(len(decode_result)):
+                                if wrote[res] != 'wrote' and decode_result[res] != '':
+                                    print(decode_result[res])
+                                    List[a] = decode_result[res]
+                                    overwrite[a] = 1
+                                    wrote[res] = 'wrote'
+                                    break
                 writer.writerow(List)
 
         # AKOUSTIS
@@ -944,10 +998,22 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                         overwrite[QTY] = 1
 
                         EID = 0
-                # print("endlist\n")
-                # print(result_list)
+
+                #######################################
+                overwrite[0] = 1
+                if decode_result != []:
+                    wrote = decode_result
+                    for a in range(len(overwrite) - 2):
+                        if overwrite[a] == 0:
+                            for res in range(len(decode_result)):
+                                if wrote[res] != 'wrote' and decode_result[res] != '':
+                                    print(decode_result[res])
+                                    List[a] = decode_result[res]
+                                    overwrite[a] = 1
+                                    wrote[res] = 'wrote'
+                                    break
                 writer.writerow(List)  # 印出來
-                index+=1
+
 
 
     #####################################################
