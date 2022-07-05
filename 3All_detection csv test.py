@@ -1,6 +1,7 @@
 import cv2,time
 import numpy
 import numpy as np
+from numpy import number
 import tensorflow
 from src.YOLO import YOLO
 from src.Feature_parse_tf import get_predict_result
@@ -15,6 +16,9 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import copy
+import re
+import xlwt
+from xlwt import Workbook
 
 #----tensorflow version check
 if tensorflow.__version__.startswith('1.'):
@@ -1702,7 +1706,74 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     cv2.destroyAllWindows()
     print("done")
 
+def photo_obj_detection_2(model_path,GPU_ratio=0.8):
 
+
+
+
+
+    # matplot show函式
+    def mat_show(image):
+        plt.imshow(image)
+        plt.show()
+
+    def compare(str1, str2):
+        tmp1 = str1.replace(" ", "")
+        tmp2 = str2.replace(" ", "")
+
+        if tmp1 in tmp2 or tmp2 in tmp1:
+            return True
+        else:
+            return False
+
+    # paddleOCR辨識
+    ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
+    img_path = "./Input_dir/ALL_company/THALES(14).jpg"  # 選擇用哪張照片
+
+    result = ocr.ocr(img_path, cls=False)
+
+    data = []
+    col = []
+    spilt_s = []
+    num = input("總欄位數量: ")  # excel中要有多少個欄位
+
+    List = []
+    for i in range(int(num)):
+        List.append('-')
+
+    index = 0
+
+    for i in range(int(num)):
+        col_tmp = input("輸入欄位名稱: ")  # 每個欄位的名稱
+        spilt_tmp = input("輸入分隔符號，若無分隔符號則輸入欄位最後一個字母: ")
+        col.append(col_tmp)
+        spilt_s.append(spilt_tmp)
+        feat = []
+        write, pre = 0, 0
+        for res in result:
+            res1 = res[1][0]
+            res1 = res1.split(spilt_tmp)
+            if write == 1:
+                write = 0
+                List[pre] = res1[0]
+                index += 1
+            if compare(col_tmp, res[1][0]):
+                if len(res1[1]) > 1:
+                    List[index] = res1[1]
+                    index += 1
+                else:
+                    write = 1
+                    pre = index
+
+    print(List)
+    #####################################################
+    # ----release
+    # f.close()
+    # fc.close()
+    # yolo_v4.sess.close()
+
+    cv2.destroyAllWindows()
+    print("done")
 
 
 if __name__ == "__main__":
@@ -1710,4 +1781,5 @@ if __name__ == "__main__":
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
     GPU_ratio = 0.8
     # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
-    photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
+    # photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
+    photo_obj_detection_2(model_path,GPU_ratio=GPU_ratio)
