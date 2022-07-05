@@ -642,7 +642,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
                             List[Lot] = line2[0][3:].lstrip(' ')
                         overwrite[Lot] = 1
                         EID = 0
-                    elif ('Gemalto' in line[1][0]) and overwrite[GPN] == 0:
+                    elif ('Gemalto' in line[1][0] or 'A1') and overwrite[GPN] == 0:
                         if len(line2) > 1: List[GPN] = line2[1].lstrip(' ')
                         overwrite[GPN] = 1
                         EID = 0
@@ -663,9 +663,9 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
                     elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[
                         QTY] == 0:
                         if len(line2) > 1:
-                            List[QTY] = line2[1].lstrip(' ')
+                            List[QTY] = line2[1].lstrip(' I')
                         else:
-                            List[QTY] = line2[0][3:].lstrip(' ')
+                            List[QTY] = line2[0][3:].lstrip(' I')
                         overwrite[QTY] = 1
                         EID = 0
                     elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
@@ -1009,9 +1009,9 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
 
 def photo_obj_detection(model_path,GPU_ratio=0.8):
 
-    #----YOLO v4 init
-    # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
-    # print("yolo initial done")
+    # ----YOLO v4 init
+    yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
+    print("yolo initial done")
 
     # 匯出辨識結果(txt)
     # result_path = './result_dir/result_txt.txt'
@@ -1321,7 +1321,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                 for line in result:
                     line2 = line[1][0]
                     line2 = line2.split(':')
-                    if ('Date co' in line[1][0] or 'DATE co' in line[1][0]) and overwrite[DateCo] == 0:
+                    if ('Date co' in line[1][0] or 'DATE co' in line[1][0] or 'Datecode' in line[1][0]) and overwrite[DateCo] == 0:
                         if len(line2) > 1: List[DateCo] = line2[1]
                         overwrite[DateCo] = 1
                         EID = 0
@@ -1343,7 +1343,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                             List[Lot] = line2[0][3:].lstrip(' ')
                         overwrite[Lot] = 1
                         EID = 0
-                    elif ('Gemalto' in line[1][0]) and overwrite[GPN] == 0:
+                    elif ('Gemalto' in line[1][0]  or 'A1') and overwrite[GPN] == 0:
                         if len(line2) > 1: List[GPN] = line2[1].lstrip(' ')
                         overwrite[GPN] = 1
                         EID = 0
@@ -1361,12 +1361,12 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
                             List[EPN] = line2[0][6:].lstrip(' ')
                         overwrite[EPN] = 1
                         EID = 0
-                    elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[
+                    elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0] or 'QY' in line[1][0]) and overwrite[
                         QTY] == 0:
                         if len(line2) > 1:
                             List[QTY] = line2[1].lstrip(' ')
                         else:
-                            List[QTY] = line2[0][3:].lstrip(' ')
+                            List[QTY] = line2[0][3:].lstrip(' |')
                         overwrite[QTY] = 1
                         EID = 0
                     elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
@@ -1709,5 +1709,5 @@ if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
     GPU_ratio = 0.8
-    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
-    # photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
+    # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
+    photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
