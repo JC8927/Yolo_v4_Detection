@@ -14,6 +14,8 @@ import pyzbar.pyzbar as pyzbar
 '''
 ##################### about file #####################
 '''
+
+
 # read file content
 def read_file(file_name):
     '''
@@ -31,6 +33,7 @@ def read_file(file_name):
             result.append(line)
     return result
 
+
 # write file
 def write_file(file_name, line, write_time=False):
     '''
@@ -38,13 +41,14 @@ def write_file(file_name, line, write_time=False):
     line: content to write
     write_time: write current time before this line
     '''
-    with open(file_name,'a') as f:
+    with open(file_name, 'a') as f:
         if write_time:
             line = get_curr_date() + '\n' + str(line)
         f.write(str(line) + '\n')
     return None
 
-# rewrite a list to file_name 
+
+# rewrite a list to file_name
 def rewrite_file(file_name, ls_line):
     '''
     rewrite file in file_name
@@ -53,6 +57,7 @@ def rewrite_file(file_name, ls_line):
         for line in ls_line:
             f.write(str(line) + '\n')
     return
+
 
 # parameter voc xml file
 def parse_voc_xml(file_name, names_dict):
@@ -89,21 +94,27 @@ def parse_voc_xml(file_name, names_dict):
         result.append([name_id, x, y, w, h])
     return result
 
+
 '''
 ######################## about time ####################
 '''
+
+
 # get current time
 def get_curr_date():
     '''
     return : year-month-day-hours-minute-second
     '''
     t = time.gmtime()
-    time_str = time.strftime("%Y-%m-%d-%H-%M-%S",t)
+    time_str = time.strftime("%Y-%m-%d-%H-%M-%S", t)
     return time_str
+
 
 '''
 ######################## about image ####################
 '''
+
+
 # read image
 def read_img(file_name):
     '''
@@ -115,8 +126,9 @@ def read_img(file_name):
     img = cv2.imread(file_name)
     return img
 
+
 # draw some box on image
-def draw_img(img, boxes, score, label, word_dict, color_table,):
+def draw_img(img, boxes, score, label, word_dict, color_table, ):
     '''
     img : cv2.img [416, 416, 3]
     boxes:[V, 4], x_min, y_min, x_max, y_max
@@ -130,6 +142,11 @@ def draw_img(img, boxes, score, label, word_dict, color_table,):
     # font
     font = cv2.FONT_HERSHEY_SIMPLEX
     decode_output = []
+
+    # 將每個box的位置資料存到yolo_box.txt中
+    # 用crop_coordinates存放要剪掉的code座標
+    crop_coordinates = []
+
     for i in range(len(boxes)):
         boxes[i][0] = constrait(boxes[i][0], 0, 1)
         boxes[i][1] = constrait(boxes[i][1], 0, 1)
@@ -137,7 +154,11 @@ def draw_img(img, boxes, score, label, word_dict, color_table,):
         boxes[i][3] = constrait(boxes[i][3], 0, 1)
         x_min, x_max = int(boxes[i][0] * w), int(boxes[i][2] * w)
         y_min, y_max = int(boxes[i][1] * h), int(boxes[i][3] * h)
-        
+
+        # 將座標資訊放入crop_coordinates
+        crop_coordinate = [x_min, x_max, y_min, y_max]
+        crop_coordinates.append(crop_coordinate)
+
         curr_label = label[i] if label is not None else 0
         curr_color = color_table[curr_label] if color_table is not None else (0, 125, 255)
 
@@ -220,12 +241,14 @@ def draw_img(img, boxes, score, label, word_dict, color_table,):
             M[1, 2] += (nH / 2) - cY
 
             return cv2.warpAffine(image, M, (nW, nH))
+
         # 圖片銳化函式
         def sharpen(img, sigma=50):
             # sigma = 5、15、25
             blur_img = cv2.GaussianBlur(img, (0, 0), sigma)
             usm = cv2.addWeighted(img, 1.5, blur_img, -0.8, 0)  # 以原圖 : 模糊圖片= 1.5 : -0.5 的比例進行混合。
             return usm
+
         ##########################-decode-#########################
         # 對barcode進行轉正處理
         if curr_label == "barcode":
@@ -247,7 +270,7 @@ def draw_img(img, boxes, score, label, word_dict, color_table,):
         cv2.rectangle(img, (x_min, y_min), (x_max, y_max), curr_color)
 
         # 顯示padding範圍
-        cv2.rectangle(img, (crop_X_min, crop_Y_min), (crop_X_max, crop_Y_max), (144,112,128))
+        cv2.rectangle(img, (crop_X_min, crop_Y_min), (crop_X_max, crop_Y_max), (144, 112, 128))
 
         # draw font
         if word_dict is not None:
@@ -256,7 +279,7 @@ def draw_img(img, boxes, score, label, word_dict, color_table,):
         if score is not None:
             text_score = "{:2d}%".format(int(score[i] * 100))
             cv2.putText(img, text_score, (x_min, y_min), font, 1, curr_color)
-        if decoded_str != [] and decoded_str[0].data.decode("utf-8")!="X":
+        if decoded_str != [] and decoded_str[0].data.decode("utf-8") != "X":
             text_decoded_str = decoded_str[0].data.decode("utf-8")
             # cv2.putText(img, text_decoded_str, (x_min, y_min+ 50), font, 1, curr_color)
             cv2.putText(img, text_score + " " + text_decoded_str, (x_min, y_min), font, 1, curr_color)
@@ -264,12 +287,27 @@ def draw_img(img, boxes, score, label, word_dict, color_table,):
         else:
             cv2.putText(img, text_score, (x_min, y_min), font, 1, curr_color)
 
-    return img,decode_output
+    # 將每個box的位置資料存到yolo_box.txt中
+    path = r'result_dir\yolo_box.txt'
+    with open(path, 'w') as f:
+        for crop_coordinate in crop_coordinates:
+            f.write(str(crop_coordinate[0]))
+            f.write(",")
+            f.write(str(crop_coordinate[1]))
+            f.write(",")
+            f.write(str(crop_coordinate[2]))
+            f.write(",")
+            f.write(str(crop_coordinate[3]))
+            f.write("\n")
+
+    return img, decode_output
 
 
 '''
 ######################## others ####################
 '''
+
+
 def get_word_dict(name_file):
     '''
     dictionary of id to name
@@ -284,7 +322,8 @@ def get_word_dict(name_file):
             word_dict[i] = str(contents[i])
     return word_dict
 
-# name => id 
+
+# name => id
 def word2id(names_file):
     '''
     dictionary of name to id
@@ -295,6 +334,7 @@ def word2id(names_file):
     for i in range(len(contents)):
         id_dict[str(contents[i])] = i
     return id_dict
+
 
 def constrait(x, start, end):
     '''    
@@ -307,7 +347,8 @@ def constrait(x, start, end):
     else:
         return x
 
-# get a list of color of corresponding name 
+
+# get a list of color of corresponding name
 def get_color_table(class_num):
     '''
     return :  list of (r, g, b) color
