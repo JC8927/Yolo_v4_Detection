@@ -1,0 +1,17 @@
+Silicon Laboratories Inc.
+Assembled InTW
+(P)Customer Part:SI8232B8-B-ISR
+(1BBoX1004387409
+QBoxQty:1250
+(9DDateCode:1905
+(9DDate Code:
+Trace Code:1905DFLOIB
+Quantity:1250
+race Code:
+Quantity
+MSL
+P.RowiC
+Seal Date03/08/19
+260
+2a
+4Ws
