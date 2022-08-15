@@ -211,9 +211,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
     yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
 
     while (cap.isOpened()):
-        # 保留沒有標記的圖片
-        # ret_1, img = cap.read()
-        # ----get image
+
         ret, img = cap.read()
         pic = numpy.array(img)
         if ret is True:
@@ -243,10 +241,57 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
             if cv2.waitKey(1) & 0xFF == ord('a'):
                 # 儲存原始照片
                 cv2.imwrite('./result_dir/result_pic_orig.jpg', pic)
-                # input("Please press the Enter key to proceed")
+
                 # 儲存yolo辨識照片
                 cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
-                # input("Please press the Enter key to proceed")
+
+                # 將yolo找到的code部分刪掉
+                # 讀取yolo找到的座標
+                with open(r'.\result_dir\yolo_box.txt', 'r') as f:
+                    coordinates = f.read()
+                spilt_coordinates = coordinates.split("\n")
+                img = pic
+                # 切掉各個code的區域
+                for coordinate in spilt_coordinates:
+                    if len(coordinate.split(",")) > 1:
+                        x_min = int(coordinate.split(",")[0])
+                        x_max = int(coordinate.split(",")[1])
+                        y_min = int(coordinate.split(",")[2])
+                        y_max = int(coordinate.split(",")[3])
+
+                        padding_x = 5
+                        padding_y = 8
+
+                        # x padding
+                        if (x_max - x_min > 2 * padding_x):
+                            x_max -= padding_x
+                            x_min += padding_x
+
+                        # y padding
+                        if (y_max - y_min > 2 * padding_y):
+                            y_max -= padding_y
+                            y_min += padding_y
+
+                        print(x_min)
+                        print(x_max)
+                        print(y_min)
+                        print(y_max)
+                        print()
+                        # 轉換x_min,x_max,y_min,y_max為x_left,y_top,w,h
+                        start_point = (x_min, y_min)
+                        end_point = (x_max, y_max)
+                        color = (0, 0, 0)
+                        # Thickness of -1 will fill the entire shape
+                        thickness = -1
+
+                        print(start_point)
+                        print(end_point)
+
+                        img = cv2.rectangle(img, start_point, end_point, color, thickness)
+                # 儲存yolo_crop照片
+                cv2.imwrite('./result_dir/result_pic_yolo_crop.jpg', img)
+                print("***************************")
+
                 #####################################################
                 # paddleOCR辨識
                 ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
@@ -343,19 +388,57 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
         # ----YOLO v4 variable init
         img = cv2.imread(img_path)
 
-        # ocr_path = './result_dir/result_pic_for_ocr.jpg'
-        # # 儲存原始照片
-        # pic = numpy.array(img)
-        # cv2.imwrite(ocr_path, img)
+        # 將yolo找到的code部分刪掉
+        # 讀取yolo找到的座標
+        with open(r'.\result_dir\yolo_box.txt', 'r') as f:
+            coordinates = f.read()
+        spilt_coordinates = coordinates.split("\n")
+
+        # 切掉各個code的區域
+        for coordinate in spilt_coordinates:
+            if len(coordinate.split(",")) > 1:
+                x_min = int(coordinate.split(",")[0])
+                x_max = int(coordinate.split(",")[1])
+                y_min = int(coordinate.split(",")[2])
+                y_max = int(coordinate.split(",")[3])
+
+                padding_x = 5
+                padding_y = 8
+
+                # x padding
+                if (x_max - x_min > 2 * padding_x):
+                    x_max -= padding_x
+                    x_min += padding_x
+
+                # y padding
+                if (y_max - y_min > 2 * padding_y):
+                    y_max -= padding_y
+                    y_min += padding_y
+
+                print(x_min)
+                print(x_max)
+                print(y_min)
+                print(y_max)
+                print()
+                # 轉換x_min,x_max,y_min,y_max為x_left,y_top,w,h
+                start_point = (x_min, y_min)
+                end_point = (x_max, y_max)
+                color = (0, 0, 0)
+                # Thickness of -1 will fill the entire shape
+                thickness = -1
+
+                print(start_point)
+                print(end_point)
+
+                img = cv2.rectangle(img, start_point, end_point, color, thickness)
+        # 儲存yolo_crop照片
+        cv2.imwrite('./result_dir/result_pic_yolo_crop.jpg', img)
+        print("***************************")
 
         # ---paddleOCR detection-----------------
         ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
         result = ocr.ocr(img_path, cls=False)  # OCR
-        # try:#移除"ocr用"產生的相片
-        #     os.remove(ocr_path)
-        # except:
-        #     pass
-        # 印出字元
+
         print("Text Part:\n")
         for res in result:
             print(res[1][0])
@@ -1017,17 +1100,6 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
     print("yolo initial done")
 
-    # 匯出辨識結果(txt)
-    # result_path = './result_dir/result_txt.txt'
-    # decode_result_path = './result_dir/decode_result_txt.txt'
-    # f = open(result_path, 'w')
-    # fc=open(decode_result_path, 'w')
-
-    # 字元part
-    # for res in result:
-    #     print(res[1][0])
-    #     # result_list.append(res[1][0])
-
     # 資料夾裡面每個檔案
     pathlist = sorted(Path("./input_dir/ALL_company/").glob('*'))  # 用哪個資料夾裡的檔案
 
@@ -1048,19 +1120,58 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
         # ----YOLO v4 variable init
         img = cv2.imread(img_path)
 
-        # ocr_path = './result_dir/result_pic_for_ocr.jpg'
-        # # 儲存原始照片
-        # pic = numpy.array(img)
-        # cv2.imwrite(ocr_path, img)
+        # # 將yolo找到的code部分刪掉
+        # # 讀取yolo找到的座標
+        # with open(r'.\result_dir\yolo_box.txt', 'r') as f:
+        #     coordinates = f.read()
+        # spilt_coordinates = coordinates.split("\n")
+        #
+        # # 切掉各個code的區域
+        # for coordinate in spilt_coordinates:
+        #     if len(coordinate.split(",")) > 1:
+        #         x_min = int(coordinate.split(",")[0])
+        #         x_max = int(coordinate.split(",")[1])
+        #         y_min = int(coordinate.split(",")[2])
+        #         y_max = int(coordinate.split(",")[3])
+        #
+        #         padding_x = 5
+        #         padding_y = 8
+        #
+        #         # x padding
+        #         if (x_max - x_min > 2 * padding_x):
+        #             x_max -= padding_x
+        #             x_min += padding_x
+        #
+        #         # y padding
+        #         if (y_max - y_min > 2 * padding_y):
+        #             y_max -= padding_y
+        #             y_min += padding_y
+        #
+        #         print(x_min)
+        #         print(x_max)
+        #         print(y_min)
+        #         print(y_max)
+        #         print()
+        #         # 轉換x_min,x_max,y_min,y_max為x_left,y_top,w,h
+        #         start_point = (x_min, y_min)
+        #         end_point = (x_max, y_max)
+        #         color = (0, 0, 0)
+        #         # Thickness of -1 will fill the entire shape
+        #         thickness = -1
+        #
+        #         print(start_point)
+        #         print(end_point)
+        #
+        #         img = cv2.rectangle(img, start_point, end_point, color, thickness)
+        # # 儲存yolo_crop照片
+        # cv2.imwrite('./result_dir/result_pic_yolo_crop.jpg', img)
+        # print("***************************")
+        # #####################################################
 
         # ---paddleOCR detection-----------------
         ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
         result = ocr.ocr(img_path, cls=False)  # OCR
-        # try:#移除"ocr用"產生的相片
-        #     os.remove(ocr_path)
-        # except:
-        #     pass
-        # 印出字元
+
         print("Text Part:\n")
         for res in result:
             print(res[1][0])
@@ -1775,11 +1886,68 @@ def photo_obj_detection_2(model_path,GPU_ratio=0.8):
     cv2.destroyAllWindows()
     print("done")
 
+def cross_photo_obj_detection(model_path, GPU_ratio=0.8):
+    # ----YOLO v4 init
+    yolo_v4 = Yolo_v4(model_path, GPU_ratio=GPU_ratio)
+
+    # 讀取top照片
+    img_top = cv2.imread('./input_dir/cross_img_fold/cross_img_top.png')
+
+    # 讀取side照片
+    img_side = cv2.imread('./input_dir/cross_img_fold/cross_img_side.png')
+
+    # YOLO v4 detection(TOP)
+    yolo_top_img, pyz_decoded_top_str = yolo_v4.detection(img_top)
+
+    # YOLO v4 detection(side)
+    yolo_side_img, pyz_decoded_side_str = yolo_v4.detection(img_side)
+
+    # paddleOCR辨識
+    ocr = PaddleOCR(lang='en')
+    result_top = ocr.ocr(img_top, cls=False)
+    result_side = ocr.ocr(img_side, cls=False)
+    result = result_top+result_side
+
+    # zbar decode
+    decode_result_top = pyz_decoded_top_str
+    decode_result_side = pyz_decoded_side_str
+    decode_result = decode_result_top+decode_result_side
+
+    # 匯出辨識結果(txt)
+    ocr_result_path = './result_dir/result_txt.txt'
+    decode_result_path = './result_dir/decode_result_txt.txt'
+    f = open(ocr_result_path, 'w')
+    fc = open(decode_result_path, 'w')
+
+
+    # 印出result字元
+    print("Text Part:\n")
+    for res in result:
+        f.write(res[1][0] + '\n')
+        print(res[1][0])
+
+    # 印出Barcode/QRCode內容
+    print("Barcode/QRCode Part:\n\n")
+    if decode_result != []:
+        for res in decode_result:
+            fc.write(res + '\n')
+            print(res)
+    else:
+        print("Decode Fail")
+
+    #####################################################
+    # ----release
+    f.close()
+    fc.close()
+    yolo_v4.sess.close()
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
     GPU_ratio = 0.8
-    # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
+    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
     # photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
-    photo_obj_detection_2(model_path,GPU_ratio=GPU_ratio)
+
+    # photo_obj_detection_2(model_path,GPU_ratio=GPU_ratio)
+    # cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
