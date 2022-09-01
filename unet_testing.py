@@ -1155,7 +1155,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
             print(line)
 
         # draw result
-        font = ImageFont.load_default()
+        # font = ImageFont.load_default()
         image = Image.open(img_path + img_name[i]).convert("RGB")
         boxes = []
         txts = []
