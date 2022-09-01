@@ -476,7 +476,6 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     yolo_v4.sess.close()
     cv2.destroyAllWindows()
 
-
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
