@@ -199,6 +199,7 @@ class Yolo_v4():
 
 
 
+
 def real_time_obj_detection(model_path,GPU_ratio=0.2):
     #----var
     frame_count = 0

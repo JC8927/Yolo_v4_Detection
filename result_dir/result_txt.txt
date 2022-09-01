@@ -1,20 +1,18 @@
 Silicon Laboratories Inc
-Assembled In:TW
+Assembled InTW
 (P)Customer Part:SI8232BB-B-ISR
 (1BBox1004387409
-(QBoxQty:1250
-9DDateCode:1905
+QBoxQty:1250
+(9DDate Code:1905
 (9DDate Code:
 Trace Code:1905DFLOIB
 Quantity:1250
-race Code
+Irace Code
 Quantity:
-IMSL
-Seal Date03/08/19
-P.Reflow(C)
-2a
+MSL
+P.Reflow(C
 E Time
+Seal Date03/08/19
+2a
 260
 4 Wks
-.nn
-X
