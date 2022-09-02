@@ -1,4 +1,5 @@
-import cv2,time
+import cv2
+import time
 import numpy
 import numpy as np
 from numpy import number
@@ -11,6 +12,7 @@ from paddleocr import PaddleOCR,draw_ocr
 import os
 from pathlib import Path
 from PIL import Image,ImageDraw
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import math
@@ -19,8 +21,12 @@ import copy
 import re
 from cmath import rect
 from ctypes import resize
-# import xlwt
-# from xlwt import Workbook
+import xlwt
+from xlwt import Workbook
+from tensorflow import keras
+from keras_segmentation.models.unet import vgg_unet
+
+from IPython.display import Image
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 
@@ -1057,11 +1063,36 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
     yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
     print("yolo initial done")
 
+    #################unet model載入start#################
+    input_img_path = "./input_dir/input_Image/"
+    reload_model = vgg_unet(n_classes=256, input_height=320, input_width=320)
+    reload_model.load_weights('./vgg_unet_label_test1_last.h5')
+    # 選擇測試圖片
+    img_dir = input_img_path
+    img_name = os.listdir(img_dir)
+    img_num = len(img_name)
+    plt.imshow(
+    cv2.imread(input_img_path+ img_name[0]))
+    # 用訓練好的圖片進行圖像分割
+    img_dir = input_img_path # 這是我預設的照片檔案位置
+    img_name = os.listdir(img_dir)  # 讀檔案名稱存list
+    img_num = len(img_name)
+    for i in range(img_num):
+        out = reload_model.predict_segmentation(
+            inp=input_img_path + img_name[i],
+            out_fname="/content/drive/MyDrive/keras_segmentation/label_dataset_1/result/" + img_name[i],
+            overlay_img=False  # 儲存處理後的照片位置
+        )
+        # from IPython.display import Image
+        # Image('/content/drive/MyDrive/keras_segmentation/label_dataset_1/result/out.jpg')
+    #################unet model載入end#################
+
 
     #################圖像前處理start#################
     start = time.time()  # 計時
-    mask_img_path = "./input_dir/input_Image/"
+
     ori_img_path = "./input_dir/input_Image/"
+    mask_img_path = "./result_dir/process/mask_img/"
     result_img_path = "./result_dir/process/cut_img/"
     ocr_img_path = "./result_dir/process/ocr_img/"
     noresize_ocr_img_path = "./result_dir/process/noresize_ocr_img/"
