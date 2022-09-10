@@ -1,18 +1,17 @@
-Silicon Laboratories Inc
-Assembled InTW
-(P)Customer Part:SI8232BB-B-ISR
-(1BBox1004387409
-QBoxQty:1250
-(9DDate Code:1905
-(9DDate Code:
-Trace Code:1905DFLOIB
-Quantity:1250
-Irace Code
-Quantity:
-MSL
-P.Reflow(C
-E Time
-Seal Date03/08/19
-2a
-260
-4 Wks
+CSOTHS
+34370000000013
+PWK
+.0O.C-U
+POY
+4800212068
+HS.
+CerebrEX.1m
+M
+Lot Na
+TK559K2
+2021/210
+301212/10
+MW
+1960
+Barcode
+2437000600001JUKCA91703VR01

@@ -190,17 +190,13 @@ class Yolo_v4():
         boxes, score, label = self.sess.run([self.pre_boxes, self.pre_score, self.pre_label],
                                             feed_dict={self.tf_input:img_4d})
         # test box
-        print("boxes: ",boxes)
-        print("score:",score)
+        # print("boxes: ",boxes)
+        # print("score:",score)
         img_bgr ,decoded_str= tools.draw_img(img_bgr, boxes, score, label, self.label_dict, self.color_table)
 
         return img_bgr,decoded_str
 
-
-
-
-
-def real_time_obj_detection(model_path,GPU_ratio=0.2):
+def real_time_obj_detection(model_path,GPU_ratio=0.8):
     #----var
     frame_count = 0
     FPS = "0"
@@ -211,6 +207,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
 
     #----YOLO v4 init
     yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
+
 
     while (cap.isOpened()):
 
@@ -235,24 +232,56 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
             #----image display
             cv2.imshow("YOLO v4 by JohnnyAI", yolo_img)
 
-            #----image writing
-            if writer is not None:
-                writer.write(yolo_img)
+            # #----image writing
+            # if writer is not None:
+            #     writer.write(yolo_img)
 
-            #----進行偵測
-            if cv2.waitKey(1) & 0xFF == ord('a'):
+
+            # ----按下Q鍵拍下、儲存一張照片
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                #####################################################
                 # 儲存原始照片
                 cv2.imwrite('./result_dir/result_pic_orig.jpg', pic)
-
+                # input("Please press the Enter key to proceed")
                 # 儲存yolo辨識照片
                 cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
+                # input("Please press the Enter key to proceed")
+                #####################################################
+
+                # csv分類
+                # 資料夾裡面每個檔案
+                pathlist = ['./result_dir/result_pic_orig.jpg']  # 用哪個資料夾裡的檔案
+
+                # 公司/項目
+                THALES = (
+                ' ', 'Company', 'Date', 'Po no', 'PN', 'Batch#', 'First ID', 'Last ID', 'Quantity', 'COO', 'Sleeve#',
+                'BOX#')
+                EDOM = (
+                ' ', 'Company', 'Gemalto PN', 'EDOM PN', 'LOT#', 'Date code', 'Quantity', 'COO', 'MSL', 'BOX#', 'REEL#')
+                SkyTra = (' ', 'Company', 'PART ID', 'D/C', 'QTY', 'Bin', 'Date')
+                AKOUSTIS = (' ', 'Company', 'Part#', 'LOT#', 'MFG#', 'DTE', 'QTY')
+                Silicon = (' ', 'Company', 'Country', 'SUPPLIER', 'DATECODE', 'QTY', 'CODE', 'SEALDATE')
+                # CSV
+
+                # ***********************************************************************
+                # 從這邊開始讀取拍攝到的照片並作OCR辨識
+                # ***********************************************************************
+
+                # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
+                start = time.time()
+
+                # 讀取拍攝好的照片(result_pic_orig.jpg)
+                Comp = 0  # 公司
+                img_path = './result_dir/result_pic_orig.jpg'  # 用這個路徑讀取最後拍下的照片
+                # ----YOLO v4 variable init
+                img = cv2.imread(img_path)
 
                 # 將yolo找到的code部分刪掉
                 # 讀取yolo找到的座標
                 with open(r'.\result_dir\yolo_box.txt', 'r') as f:
                     coordinates = f.read()
                 spilt_coordinates = coordinates.split("\n")
-                img = pic
+
                 # 切掉各個code的區域
                 for coordinate in spilt_coordinates:
                     if len(coordinate.split(",")) > 1:
@@ -274,11 +303,6 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
                             y_max -= padding_y
                             y_min += padding_y
 
-                        print(x_min)
-                        print(x_max)
-                        print(y_min)
-                        print(y_max)
-                        print()
                         # 轉換x_min,x_max,y_min,y_max為x_left,y_top,w,h
                         start_point = (x_min, y_min)
                         end_point = (x_max, y_max)
@@ -286,1378 +310,1303 @@ def real_time_obj_detection(model_path,GPU_ratio=0.2):
                         # Thickness of -1 will fill the entire shape
                         thickness = -1
 
-                        print(start_point)
-                        print(end_point)
-
                         img = cv2.rectangle(img, start_point, end_point, color, thickness)
                 # 儲存yolo_crop照片
                 cv2.imwrite('./result_dir/result_pic_yolo_crop.jpg', img)
                 print("***************************")
 
+                # paddleOCR辨識
+                ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
+                img_path = './result_dir/result_pic_yolo_crop.jpg'
+                result = ocr.ocr(img_path, cls=False)
+                decode_result = pyz_decoded_str
 
-            # ----按下Q鍵停止錄影，並拍下、儲存一張照片
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+                # Tesserect辨識
+                # Tesserect_result = pytesseract.image_to_string(img_path, lang="chi_tra+eng")
+                Tesserect_result = pytesseract.image_to_string(img_path, lang="eng")
+
+                # 匯出辨識結果(txt)
+                result_path = './result_dir/result_txt.txt'
+                tesseract_result_path = './result_dir/tesseract_result_txt.txt'
+                decode_result_path = './result_dir/decode_result_txt.txt'
+                f = open(result_path, 'w')
+                # tesseract_f = open(tesseract_result_path, 'w')
+                fc = open(decode_result_path, 'w')
+
+                # 印出字元與位置
+                '''for line in result:
+                    f.write(res[1]+'\n')
+                    print(line)'''
+
+                # 印出PaddleOCR結果
+                print("PaddleOCR Text Part:\n")
+                for res in result:
+                    f.write(res[1][0] + '\n')
+                    print(res[1][0])
+
+                # # 印出Tesserect結果
+                # print("Tesserect Text Part:\n")
+                # for res in Tesserect_result.split('\n'):
+                #     tesseract_f.write(res + '\n')
+                #     print(res)
+
+                # 印出Barcode/QRCode內容
+                print("Barcode/QRCode Part:\n")
+                if decode_result != []:
+                    for res in decode_result:
+                        fc.write(res + '\n')
+                        print(res)
+                else:
+                    print("Decode Fail")
+                #####################################################
+                # 判斷標籤屬於哪個公司
+                for line in result:
+                    if 'THALES' in line[1][0]:
+                        Comp = 1
+                        break
+                    elif 'EDOM' in line[1][0]:
+                        Comp = 2
+                        break
+                    elif 'SkyT' in line[1][0]:
+                        Comp = 3
+                        break
+                    elif 'Silicon' in line[1][0]:
+                        Comp = 4
+                        break
+                    elif 'AKOUSTIS' in line[1][0]:
+                        Comp = 5
+                        break
+
+                # 檢查是否存在各公司資料夾，不存在的話就創立一個新的(包含標頭)
+                if not os.path.isfile('./result_dir/Company_OCR/THALES_csv.csv'):
+                    # paddle_csv
+                    with open('./result_dir/Company_OCR/THALES_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+                if not os.path.isfile('./result_dir/Company_OCR/EDOM_csv.csv'):
+                    # paddle_csv
+                    with open('./result_dir/Company_OCR/EDOM_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(EDOM)  # 列出公司有的項目
+                    # tesserect_csv
+                    with open('./result_dir/Company_OCR/EDOM_tesserect_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+                if not os.path.isfile('./result_dir/Company_OCR/SkyTra_csv.csv'):
+                    # paddle_csv
+                    with open('./result_dir/Company_OCR/SkyTra_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(SkyTra)  # 列出公司有的項目
+                    # tesserect_csv
+                    with open('./result_dir/Company_OCR/SkyTra_tesserect_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+                if not os.path.isfile('./result_dir/Company_OCR/Silicon_csv.csv'):
+                    # paddle_csv
+                    with open('./result_dir/Company_OCR/Silicon_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(Silicon)  # 列出公司有的項目 (之後看寫在哪 只用跑一次)
+                    # tesserect_csv
+                    with open('./result_dir/Company_OCR/Silicon_tesserect_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+                if not os.path.isfile('./result_dir/Company_OCR/AKOUSTIS_csv.csv'):
+                    # paddle_csv
+                    with open('./result_dir/Company_OCR/AKOUSTIS_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(AKOUSTIS)  # 列出公司有的項目
+                    # tesserect_csv
+                    with open('./result_dir/Company_OCR/AKOUSTIS_tesserect_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+
+                # 檢查是否存在各公司tessersct資料夾，不存在的話就創立一個新的(包含標頭)
+                if not os.path.isfile('./result_dir/Company_OCR/THALES_tesserect_csv.csv'):
+                    # tesserect_csv
+                    with open('./result_dir/Company_OCR/THALES_tesserect_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+                if not os.path.isfile('./result_dir/Company_OCR/EDOM_tesserect_csv.csv'):
+                    # tesserect_csv
+                    with open('./result_dir/Company_OCR/EDOM_tesserect_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+                if not os.path.isfile('./result_dir/Company_OCR/SkyTra_tesserect_csv.csv'):
+                    # tesserect_csv
+                    with open('./result_dir/Company_OCR/SkyTra_tesserect_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+                if not os.path.isfile('./result_dir/Company_OCR/Silicon_tesserect_csv.csv'):
+                    # tesserect_csv
+                    with open('./result_dir/Company_OCR/Silicon_tesserect_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+                if not os.path.isfile('./result_dir/Company_OCR/AKOUSTIS_tesserect_csv.csv'):
+                    # tesserect_csv
+                    with open('./result_dir/Company_OCR/AKOUSTIS_tesserect_csv.csv', 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(THALES)  # 列出公司有的項目
+
+                result_list = []
+
+
+                # THALES
+                if (Comp == 1):
+                    result_path = './result_dir/Company_OCR/THALES_csv.csv'
+                    with open(result_path, 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        Company, Date, Po, PN, Batch, FirstE, LastE, QTY, COO, Sle, BOX = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11  # 哪一項放在第幾格
+                        List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
+                        EID = 0  # 換行用
+                        s = str(img_path)
+                        List[0] = s.strip("/content/LABEL/")  # 第一格放圖片名稱
+                        overwrite = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
+                        for line in result:
+                            line2 = line[1][0]
+                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+
+                            # Date
+                            if ('Date' in line[1][0] or 'DATE' in line[1][0]) and overwrite[
+                                Date] == 0:  # 那行有Date Date那格沒被填過(有些公司有Date code又有Date ，Date code要寫前面)
+                                if len(line2) > 1:
+                                    List[Date] = line2[1]  # 那行有被分割過(有冒號) 填第2個資料
+                                else:
+                                    List[Date] = line2[0][4:].lstrip(' ')
+                                overwrite[Date] = 1  # 填完了
+                                EID = 0  # 不用換行
+
+                            # Company
+                            elif 'THALES' in line[1][0] and overwrite[Company] == 0:  # 那行有公司名
+                                List[Company] = 'THALES'  # 填公司名
+                                overwrite[Company] = 1  # 填了
+                                EID = 0  # 不用換行
+
+                            elif ('PO No.' in line[1][0]) or 'P.O. #' in line[1][0] and overwrite[Po] == 0:
+                                if len(line2) > 1:
+                                    List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
+                                else:
+                                    List[Po] = line2[0][6:].lstrip(' ')
+                                overwrite[Po] = 1  # 填了
+                                EID = 0  # 不用換行
+                            elif ('PONo.' in line[1][0] or 'P.O.#' in line[1][0]) and overwrite[Po] == 0:
+                                if len(line2) > 1:
+                                    List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
+                                else:
+                                    List[Po] = line2[0][5:].lstrip(' ')
+                                overwrite[Po] = 1  # 填了
+                                EID = 0  # 不用換行
+                            elif ('P.O#' in line[1][0]) and overwrite[Po] == 0:
+                                if len(line2) > 1:
+                                    List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
+                                else:
+                                    List[Po] = line2[0][4:].lstrip(' ')
+                                overwrite[Po] = 1  # 填了
+                                EID = 0  # 不用換行
+
+                            # PN
+                            elif ('PN' in line[1][0]) and overwrite[PN] == 0:
+                                if len(line2) > 1:
+                                    List[PN] = line2[1].lstrip(' ')
+                                else:
+                                    List[PN] = line2[0][2:].lstrip(' ')
+                                overwrite[PN] = 1
+                                EID = 0
+                            elif ('P/N' in line[1][0]) and overwrite[PN] == 0:
+                                if len(line2) > 1:
+                                    List[PN] = line2[1].lstrip(' ')
+                                else:
+                                    List[PN] = line2[0][3:].lstrip(' ')
+                                overwrite[PN] = 1
+                                EID = 0
+
+                            # Batch
+                            elif 'Batch' in line[1][0] and overwrite[Batch] == 0:
+                                if len(line2) > 1: List[Batch] = line2[1].lstrip(' ')
+                                overwrite[Batch] = 1
+                                EID = 0
+
+                            # EID(換行)
+                            elif 'First EID' in line[1][0]:
+                                EID = 1  # 這行沒東西 換行
+                            elif 'Last EID' in line[1][0]:
+                                EID = 2  # 這行沒東西 換行
+                            elif 'First ICCID' in line[1][0]:
+                                if len(line2) > 1:
+                                    List[FirstE] = line2[1].lstrip(' ')
+                                else:
+                                    List[FirstE] = line2[0][11:].lstrip(' ')
+                                overwrite[FirstE] = 1  # 填了
+                                EID = 0  # 不用換行
+                            elif 'Last ICCID' in line[1][0]:
+                                if len(line2) > 1:
+                                    List[LastE] = line2[1].lstrip(' ')
+                                else:
+                                    List[LastE] = line2[0][10:].lstrip(' ')
+                                overwrite[LastE] = 1
+                                EID = 0
+
+                            # QTY
+                            elif ('Qty' in line[1][0] or 'QTY' in line[1][0]) and overwrite[QTY] == 0:
+                                if len(line2) > 1:
+                                    List[QTY] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
+                                else:
+                                    List[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
+                                overwrite[QTY] = 1
+                                EID = 0
+
+                            # COO
+                            elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
+                                if len(line2) > 1:
+                                    List[COO] = line2[1].lstrip(' ')
+                                else:
+                                    List[COO] = line2[0][3:].lstrip(' ')
+                                overwrite[COO] = 1
+                                EID = 0
+                            elif ('C.O.O.' in line[1][0] or 'C.o.o.' in line[1][0]) and overwrite[COO] == 0:
+                                if len(line2) > 1:
+                                    List[COO] = line2[1].lstrip(' ')
+                                else:
+                                    List[COO] = line2[0][6:].lstrip(' ')
+                                overwrite[COO] = 1
+                                EID = 0
+                            elif ('MADE IN' in line[1][0] or 'Made In' in line[1][0]) and overwrite[COO] == 0:
+                                if len(line2) > 1:
+                                    List[COO] = line2[1].lstrip(' ')
+                                else:
+                                    List[COO] = line2[0][7:].lstrip(' ')
+                                overwrite[COO] = 1
+                                EID = 0
+
+                            # SLEEVE
+                            elif 'Sleeve' in line[1][0] and overwrite[Sle] == 0:
+                                if len(line2) > 1: List[Sle] = line2[1].lstrip(' ')
+                                overwrite[Sle] = 1
+                                EID = 0
+                            elif ('BOX #' in line[1][0] or 'Box #' in line[1][0]) and overwrite[BOX] == 0:
+                                if len(line2) > 1:
+                                    List[BOX] = line2[1].lstrip(' ')
+                                else:
+                                    List[BOX] = line2[BOX][5:].lstrip(' ')
+                                overwrite[BOX] = 1
+                                EID = 0
+                            elif ('BOX#' in line[1][0] or 'Box#' in line[1][0]) and overwrite[BOX] == 0:
+                                if len(line2) > 1:
+                                    List[BOX] = line2[1].lstrip(' ')
+                                else:
+                                    List[BOX] = line2[BOX][4:].lstrip(' ')
+                                overwrite[BOX] = 1
+                                EID = 0
+                            elif ('BOX' in line[1][0] or 'Box' in line[1][0]) and overwrite[BOX] == 0:
+                                if len(line2) > 1:
+                                    List[BOX] = line2[1].lstrip(' ')
+                                else:
+                                    List[BOX] = line2[BOX][3:].lstrip(' ')
+                                overwrite[BOX] = 1
+                                EID = 0
+
+                            # EID
+                            elif EID == 1 and overwrite[FirstE] == 0:  # 上一行測到讓EID變1的
+                                List[FirstE] = line2[0].lstrip(' ')  # 填
+                                overwrite[FirstE] = 1  # 填了
+                                EID = 0  # 不用換行
+                            elif EID == 2 and overwrite[LastE] == 0:  # 上一行測到讓EID變2的
+                                List[LastE] = line2[0].lstrip(' ')
+                                overwrite[LastE] = 1
+                                EID = 0
+
+                        #######################################
+                        overwrite[0] = 1
+                        if decode_result != []:
+                            wrote = decode_result
+                            for a in range(len(overwrite) - 2):
+                                if overwrite[a] == 0:
+                                    for res in range(len(decode_result)):
+                                        if wrote[res] != 'wrote' and decode_result[res] != '':
+                                            print(decode_result[res])
+                                            List[a] = decode_result[res]
+                                            overwrite[a] = 1
+                                            wrote[res] = 'wrote'
+                                            break
+                        writer.writerow(List)  # 印出來
+
+                # EDOM
+                elif (Comp == 2):
+                    result_path = './result_dir/Company_OCR/EDOM_csv.csv'
+                    with open(result_path, 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        Company, GPN, EPN, Lot, DateCo, QTY, COO, MSL, BOX, REEL = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+                        List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
+                        EID = 0
+                        s = str(img_path)
+                        List[0] = s.strip("/content/LABEL/")
+                        overwrite = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                        for line in result:
+                            line2 = line[1][0]
+                            line2 = line2.split(':')
+                            if ('Date co' in line[1][0] or 'DATE co' in line[1][0]) and overwrite[DateCo] == 0:
+                                if len(line2) > 1: List[DateCo] = line2[1]
+                                overwrite[DateCo] = 1
+                                EID = 0
+                            elif 'EDOM' in line[1][0] and overwrite[Company] == 0:
+                                List[Company] = 'EDOM'
+                                overwrite[Company] = 1
+                                EID = 0
+                            elif ('Lot#' in line[1][0] or 'LOT#' in line[1][0]) and overwrite[Lot] == 0:
+                                if len(line2) > 1:
+                                    List[Lot] = line2[1].lstrip(' ')
+                                else:
+                                    List[Lot] = line2[0][4:].lstrip(' ')
+                                overwrite[Lot] = 1
+                                EID = 0
+                            elif ('Lot' in line[1][0] or 'LOT' in line[1][0]) and overwrite[Lot] == 0:
+                                if len(line2) > 1:
+                                    List[Lot] = line2[1].lstrip(' ')
+                                else:
+                                    List[Lot] = line2[0][3:].lstrip(' ')
+                                overwrite[Lot] = 1
+                                EID = 0
+                            elif ('Gemalto' in line[1][0] or 'A1') and overwrite[GPN] == 0:
+                                if len(line2) > 1: List[GPN] = line2[1].lstrip(' ')
+                                overwrite[GPN] = 1
+                                EID = 0
+                            elif ('EDOM PN' in line[1][0]) and overwrite[EPN] == 0:
+                                if len(line2) > 1:
+                                    List[EPN] = line2[1].lstrip(' ')
+                                else:
+                                    List[EPN] = line2[0][7:].lstrip(' ')
+                                overwrite[EPN] = 1
+                                EID = 0
+                            elif ('EDOMPN' in line[1][0]) and overwrite[EPN] == 0:
+                                if len(line2) > 1:
+                                    List[EPN] = line2[1].lstrip(' ')
+                                else:
+                                    List[EPN] = line2[0][6:].lstrip(' ')
+                                overwrite[EPN] = 1
+                                EID = 0
+                            elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[
+                                QTY] == 0:
+                                if len(line2) > 1:
+                                    List[QTY] = line2[1].lstrip(' I')
+                                else:
+                                    List[QTY] = line2[0][3:].lstrip(' I')
+                                overwrite[QTY] = 1
+                                EID = 0
+                            elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
+                                if len(line2) > 1:
+                                    List[COO] = line2[1].lstrip(' ')
+                                else:
+                                    List[COO] = line2[0][3:].lstrip(' ')
+                                overwrite[COO] = 1
+                                EID = 0
+                            elif ('C.O.O.' in line[1][0] or 'C.o.o.' in line[1][0]) and overwrite[COO] == 0:
+                                if len(line2) > 1:
+                                    List[COO] = line2[1].lstrip(' ')
+                                else:
+                                    List[COO] = line2[0][6:].lstrip(' ')
+                                overwrite[COO] = 1
+                                EID = 0
+                            elif ('BOX #' in line[1][0] or 'Box #' in line[1][0]) and overwrite[BOX] == 0:
+                                if len(line2) > 1:
+                                    List[BOX] = line2[1].lstrip(' ')
+                                else:
+                                    List[BOX] = line2[BOX][5:].lstrip(' ')
+                                overwrite[BOX] = 1
+                                EID = 0
+                            elif ('BOX#' in line[1][0] or 'Box#' in line[1][0]) and overwrite[BOX] == 0:
+                                if len(line2) > 1:
+                                    List[BOX] = line2[1].lstrip(' ')
+                                else:
+                                    List[BOX] = line2[BOX][2:].lstrip(' ')
+                                overwrite[BOX] = 1
+                                EID = 0
+                            elif ('BOX' in line[1][0] or 'Box' in line[1][0]) and overwrite[BOX] == 0:
+                                if len(line2) > 1:
+                                    List[BOX] = line2[1].lstrip(' ')
+                                else:
+                                    List[BOX] = line2[BOX][3:].lstrip(' ')
+                                overwrite[BOX] = 1
+                                EID = 0
+                            elif ('REEL#' in line[1][0] or 'Reel#' in line[1][0]) and overwrite[BOX] == 0:
+                                if len(line2) > 1:
+                                    List[REEL] = line2[1].lstrip(' ')
+                                else:
+                                    List[REEL] = line2[REEL][5:].lstrip(' ')
+                                overwrite[REEL] = 1
+                                EID = 0
+                            elif ('REEL' in line[1][0] or 'Reel' in line[1][0]) and overwrite[BOX] == 0:
+                                if len(line2) > 1:
+                                    List[REEL] = line2[1].lstrip(' ')
+                                else:
+                                    List[REEL] = line2[REEL][4:].lstrip(' ')
+                                overwrite[REEL] = 1
+                                EID = 0
+                            elif ('REEL #' in line[1][0] or 'Reel #' in line[1][0]) and overwrite[BOX] == 0:
+                                if len(line2) > 1:
+                                    List[REEL] = line2[1].lstrip(' ')
+                                else:
+                                    List[REEL] = line2[REEL][6:].lstrip(' ')
+                                overwrite[REEL] = 1
+                                EID = 0
+                            elif ('MSL' in line[1][0] or 'msl' in line[1][0]) and overwrite[MSL] == 0:
+                                if len(line2) > 1:
+                                    List[MSL] = line2[1].lstrip(' ')
+                                else:
+                                    List[MSL] = line2[0][3:].lstrip(' ')
+                                overwrite[MSL] = 1
+                                EID = 0
+                        #######################################
+                        overwrite[0] = 1
+                        if decode_result != []:
+                            wrote = decode_result
+                            for a in range(len(overwrite) - 2):
+                                if overwrite[a] == 0:
+                                    for res in range(len(decode_result)):
+                                        if wrote[res] != 'wrote' and decode_result[res] != '':
+                                            print(decode_result[res])
+                                            List[a] = decode_result[res]
+                                            overwrite[a] = 1
+                                            wrote[res] = 'wrote'
+                                            break
+                        writer.writerow(List)  # 印出來
+
+                # SkyTra
+                elif (Comp == 3):
+                    print(r"////////////////////////////////////")
+                    print("Comp = " + str(Comp))
+                    print(r"////////////////////////////////////")
+                    result_path = './result_dir/Company_OCR/SkyTra_csv.csv'
+                    with open(result_path, 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        Company, PartID, DC, QTY, BIN, DATE = 1, 2, 3, 4, 5, 6
+                        List = ['-', '-', '-', '-', '-', '-', '-']
+                        s = str(img_path)
+                        List[0] = s.strip("./")
+                        overwrite = [0, 0, 0, 0, 0, 0, 0]
+                        write, pre = 0, 0
+                        for line in result:
+                            line2 = line[1][0]
+                            line2 = line2.split(':')
+                            if write == 1:
+                                write = 0
+                                List[pre] = line2[0]
+                                overwrite[pre] = 1
+
+                            if ('PARTID' in line[1][0] or 'PART ID' in line[1][0]) and overwrite[PartID] == 0:
+                                if len(line2[1]) > 1:
+                                    List[PartID] = line2[1]
+                                    overwrite[PartID] = 1
+                                elif overwrite[PartID] == 0:
+                                    write = 1
+                                    pre = PartID
+                            elif 'SkyT' in line[1][0] and overwrite[Company] == 0:
+                                List[Company] = 'SkyTra'
+                                overwrite[Company] = 1
+                            elif ('D/C' in line[1][0]) and overwrite[DC] == 0:
+                                if len(line2[1]) > 1:
+                                    List[DC] = line2[1].lstrip(' ')
+                                    overwrite[DC] = 1
+                                elif overwrite[DC] == 0:
+                                    write = 1
+                                    pre = DC
+                            elif ('QTY' in line[1][0]) and overwrite[QTY] == 0:
+                                if len(line2[1]) > 1:
+                                    List[QTY] = line2[1].lstrip(' ')
+                                    overwrite[QTY] = 1
+                                elif overwrite[QTY] == 0:
+                                    write = 1
+                                    pre = QTY
+                            elif ('Bin' in line[1][0]) and overwrite[BIN] == 0:
+                                if len(line2[1]) > 1:
+                                    List[BIN] = line2[1].lstrip(' ')
+                                    overwrite[BIN] = 1
+                                elif overwrite[BIN] == 0:
+                                    write = 1
+                                    pre = BIN
+                            elif (('Date' in line[1][0] or 'ROHS' in line[1][0]) and overwrite[DATE] == 0):
+                                if ('Date' in line[1][0] and len(line2[1]) > 1):
+                                    List[DATE] = line2[1].lstrip(' ')
+                                    overwrite[DATE] = 1
+                                elif overwrite[DATE] == 0:
+                                    write = 1
+                                    pre = DATE
+
+                        #######################################
+                        overwrite[0] = 1
+                        if decode_result != []:
+                            wrote = decode_result
+                            for a in range(len(overwrite)):
+                                if overwrite[a] == 0:
+                                    for res in range(len(decode_result)):
+                                        if wrote[res] != 'wrote' and decode_result[res] != '':
+                                            print(decode_result[res])
+                                            List[a] = decode_result[res]
+                                            overwrite[a] = 1
+                                            wrote[res] = 'wrote'
+                                            break
+                        writer.writerow(List)
+
+                # Silicon
+                elif (Comp == 4):
+                    result_path = './result_dir/Company_OCR/Silicon_csv.csv'
+                    with open(result_path, 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        Company, Country, SUPPLIER, DATECODE, QTY, CODE, SEALDATE = 1, 2, 3, 4, 5, 6, 7
+                        List = ['-', '-', '-', '-', '-', '-', '-', '-']
+                        EID = 0
+                        s = str(img_path)
+                        List[0] = s.strip(r"/content/LABEL/")
+                        overwrite = [0, 0, 0, 0, 0, 0, 0, 0]
+                        for line in result:
+                            line2 = line[1][0]
+                            line2 = line2.split(':')
+
+                            if 'Silicon' in line[1][0] and overwrite[Company] == 0:
+                                List[Company] = 'Silicon Laboratories Inc.'
+                                overwrite[Company] = 1
+                                EID = 0
+                            elif ('TW' in line[1][0] or 'CN' in line[1][0] or 'cN' in line[1][0] or 'cn' in line[1][
+                                0] or 'Tw' in line[1][0]) and overwrite[Country] == 0:
+                                List[Country] = line[1][0].lstrip(' AsemblinInd:')
+                                overwrite[Country] = 1
+                                EID = 0
+                            elif ('SUPPLIER' in line[1][0] or 'ID' in line[1][0] or 'Customer' in line[1][
+                                0] or 'Part' in
+                                  line[1][0]) and overwrite[SUPPLIER] == 0:
+                                if len(line2) > 1:
+                                    List[SUPPLIER] = line2[1].lstrip(' ')
+                                else:
+                                    List[SUPPLIER] = line2[0][3:].lstrip(' ')
+                                overwrite[SUPPLIER] = 1
+                                EID = 0
+                            elif ('DATECODE' in line[1][0] or 'Date Code' in line[1][0]) and overwrite[DATECODE] == 0:
+                                if len(line2) > 1: List[DATECODE] = line2[1].lstrip(' ')
+                                overwrite[DATECODE] = 1
+                                EID = 0
+                            elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[
+                                QTY] == 0:
+                                if len(line2) > 1:
+                                    List[QTY] = line2[1].lstrip(r'QqTtYy() ')
+                                else:
+                                    List[QTY] = line2[0][3:].lstrip(r'QqTtYy() ')
+                                overwrite[QTY] = 1
+                                EID = 0
+
+                            elif (line[1][0].isdigit() and len(line[1][0]) > 9 or 'Trace Code' in line[1][0] or 'BOX' in
+                                  line[1][0]) and overwrite[CODE] == 0:
+                                if len(line2) > 1:
+                                    List[CODE] = line2[1].lstrip(r' ')
+                                else:
+                                    List[CODE] = line2[0].lstrip(' ')
+                                overwrite[CODE] = 1
+                                EID = 0
+
+                            elif ('SEALDATE' in line[1][0] or 'Seal Date' in line[1][0] or 'SEAL DATE' in line[1][
+                                0]) and \
+                                    overwrite[SEALDATE] == 0:
+                                if len(line2) > 1:
+                                    List[SEALDATE] = line2[1].lstrip(r' SEALDTealate')
+                                else:
+                                    List[SEALDATE] = line[1][0].lstrip(r' SEALDTealate')
+                                overwrite[SEALDATE] = 1
+                                EID = 0
+                        #######################################
+                        overwrite[0] = 1
+                        if decode_result != []:
+                            wrote = decode_result
+                            for a in range(len(overwrite)):
+                                if overwrite[a] == 0:
+                                    for res in range(len(decode_result)):
+                                        if wrote[res] != 'wrote' and decode_result[res] != '':
+                                            print(decode_result[res])
+                                            List[a] = decode_result[res]
+                                            overwrite[a] = 1
+                                            wrote[res] = 'wrote'
+                                            break
+                        writer.writerow(List)
+
+                # AKOUSTIS
+                elif (Comp == 5):
+                    result_path = './result_dir/Company_OCR/AKOUSTIS_csv.csv'
+                    with open(result_path, 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        Company, Part, LOT, MFG, DTE, QTY = 1, 2, 3, 4, 5, 6  # 哪一項放在第幾格
+                        List = ['-', '-', '-', '-', '-', '-', '-']
+                        EID = 0  # 換行用
+                        s = str(img_path)
+                        List[0] = s.strip("/content/LABEL/")  # 第一格我放圖片名稱
+                        overwrite = [0, 0, 0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
+                        index = 0
+                        for line in result:
+                            line2 = line[1][0]
+                            # print(line2)
+
+                            # Company
+                            if 'AKOUSTIS' in line[1][0] and overwrite[Company] == 0:  # 那行有公司名
+                                List[Company] = 'AKOUSTIS'  # 填公司名
+                                overwrite[Company] = 1  # 填了
+
+                                EID = 0  # 不用換行
+
+                            # Part#
+                            elif ('Part' in line[1][0]) and overwrite[Part] == 0:
+                                if ':' in line[1][0]:
+                                    line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                                elif '#' in line[1][0]:
+                                    line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                                if len(line2) > 1: List[Part] = line2[1].lstrip(
+                                    ' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
+                                overwrite[Part] = 1  # 填了
+
+                                EID = 0  # 不用換行
+
+                            # LOT#
+                            elif ('LOT' in line[1][0] or 'P/N' in line[1][0]) and overwrite[LOT] == 0:
+                                if ':' in line[1][0]:
+                                    line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                                elif '#' in line[1][0]:
+                                    line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                                if len(line2) > 1: List[LOT] = line2[1].lstrip(' ')
+                                overwrite[LOT] = 1
+
+                                EID = 0
+
+                            # MFG#
+                            elif 'MFG' in line[1][0] and overwrite[MFG] == 0:
+                                if ':' in line[1][0]:
+                                    line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                                elif '#' in line[1][0]:
+                                    line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                                if len(line2) > 1: List[MFG] = line2[1].lstrip(' ')
+                                overwrite[MFG] = 1
+
+                                EID = 0
+
+                            # DTE
+                            elif 'DTE' in line[1][0] and overwrite[DTE] == 0:
+                                if ':' in line[1][0]:
+                                    line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                                elif '#' in line[1][0]:
+                                    line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                                if len(line2) > 1: List[DTE] = line2[1].lstrip(' ')
+                                overwrite[DTE] = 1
+
+                                EID = 0
+
+                            # QTY
+                            elif 'QTY' in line[1][0] and overwrite[QTY] == 0:
+                                if ':' in line[1][0]:
+                                    line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                                elif '#' in line[1][0]:
+                                    line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                                if len(line2) > 1: List[QTY] = line2[1].lstrip(' ')
+                                overwrite[QTY] = 1
+
+                                EID = 0
+
+                        #######################################
+                        overwrite[0] = 1
+                        if decode_result != []:
+                            wrote = decode_result
+                            for a in range(len(overwrite)):
+                                if overwrite[a] == 0:
+                                    for res in range(len(decode_result)):
+                                        if wrote[res] != 'wrote' and decode_result[res] != '':
+                                            print(decode_result[res])
+                                            List[a] = decode_result[res]
+                                            overwrite[a] = 1
+                                            wrote[res] = 'wrote'
+                                            break
+                        writer.writerow(List)  # 印出來
+
+                # # 將tesserect的結果也匯到csv中
+                # if (Comp == 1):
+                #     result_path = './result_dir/Company_OCR/THALES_tesserect_csv.csv'
+                #     with open(result_path, 'a', newline='') as csvfile:
+                #         writer = csv.writer(csvfile)
+                #         Company, Date, Po, PN, Batch, FirstE, LastE, QTY, COO, Sle, BOX = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11  # 哪一項放在第幾格
+                #         List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
+                #         EID = 0  # 換行用
+                #         s = str(img_path)
+                #         List[0] = s.strip("/content/LABEL/")  # 第一格放圖片名稱
+                #         overwrite = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
+                #         for line in result:
+                #             line2 = line[1][0]
+                #             line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                #
+                #             # Date
+                #             if ('Date' in line[1][0] or 'DATE' in line[1][0]) and overwrite[
+                #                 Date] == 0:  # 那行有Date Date那格沒被填過(有些公司有Date code又有Date ，Date code要寫前面)
+                #                 if len(line2) > 1:
+                #                     List[Date] = line2[1]  # 那行有被分割過(有冒號) 填第2個資料
+                #                 else:
+                #                     List[Date] = line2[0][4:].lstrip(' ')
+                #                 overwrite[Date] = 1  # 填完了
+                #                 EID = 0  # 不用換行
+                #
+                #             # Company
+                #             elif 'THALES' in line[1][0] and overwrite[Company] == 0:  # 那行有公司名
+                #                 List[Company] = 'THALES'  # 填公司名
+                #                 overwrite[Company] = 1  # 填了
+                #                 EID = 0  # 不用換行
+                #
+                #             elif ('PO No.' in line[1][0]) or 'P.O. #' in line[1][0] and overwrite[Po] == 0:
+                #                 if len(line2) > 1:
+                #                     List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
+                #                 else:
+                #                     List[Po] = line2[0][6:].lstrip(' ')
+                #                 overwrite[Po] = 1  # 填了
+                #                 EID = 0  # 不用換行
+                #             elif ('PONo.' in line[1][0] or 'P.O.#' in line[1][0]) and overwrite[Po] == 0:
+                #                 if len(line2) > 1:
+                #                     List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
+                #                 else:
+                #                     List[Po] = line2[0][5:].lstrip(' ')
+                #                 overwrite[Po] = 1  # 填了
+                #                 EID = 0  # 不用換行
+                #             elif ('P.O#' in line[1][0]) and overwrite[Po] == 0:
+                #                 if len(line2) > 1:
+                #                     List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
+                #                 else:
+                #                     List[Po] = line2[0][4:].lstrip(' ')
+                #                 overwrite[Po] = 1  # 填了
+                #                 EID = 0  # 不用換行
+                #
+                #             # PN
+                #             elif ('PN' in line[1][0]) and overwrite[PN] == 0:
+                #                 if len(line2) > 1:
+                #                     List[PN] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[PN] = line2[0][2:].lstrip(' ')
+                #                 overwrite[PN] = 1
+                #                 EID = 0
+                #             elif ('P/N' in line[1][0]) and overwrite[PN] == 0:
+                #                 if len(line2) > 1:
+                #                     List[PN] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[PN] = line2[0][3:].lstrip(' ')
+                #                 overwrite[PN] = 1
+                #                 EID = 0
+                #
+                #             # Batch
+                #             elif 'Batch' in line[1][0] and overwrite[Batch] == 0:
+                #                 if len(line2) > 1: List[Batch] = line2[1].lstrip(' ')
+                #                 overwrite[Batch] = 1
+                #                 EID = 0
+                #
+                #             # EID(換行)
+                #             elif 'First EID' in line[1][0]:
+                #                 EID = 1  # 這行沒東西 換行
+                #             elif 'Last EID' in line[1][0]:
+                #                 EID = 2  # 這行沒東西 換行
+                #             elif 'First ICCID' in line[1][0]:
+                #                 if len(line2) > 1:
+                #                     List[FirstE] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[FirstE] = line2[0][11:].lstrip(' ')
+                #                 overwrite[FirstE] = 1  # 填了
+                #                 EID = 0  # 不用換行
+                #             elif 'Last ICCID' in line[1][0]:
+                #                 if len(line2) > 1:
+                #                     List[LastE] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[LastE] = line2[0][10:].lstrip(' ')
+                #                 overwrite[LastE] = 1
+                #                 EID = 0
+                #
+                #             # QTY
+                #             elif ('Qty' in line[1][0] or 'QTY' in line[1][0]) and overwrite[QTY] == 0:
+                #                 if len(line2) > 1:
+                #                     List[QTY] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
+                #                 else:
+                #                     List[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
+                #                 overwrite[QTY] = 1
+                #                 EID = 0
+                #
+                #             # COO
+                #             elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
+                #                 if len(line2) > 1:
+                #                     List[COO] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[COO] = line2[0][3:].lstrip(' ')
+                #                 overwrite[COO] = 1
+                #                 EID = 0
+                #             elif ('C.O.O.' in line[1][0] or 'C.o.o.' in line[1][0]) and overwrite[COO] == 0:
+                #                 if len(line2) > 1:
+                #                     List[COO] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[COO] = line2[0][6:].lstrip(' ')
+                #                 overwrite[COO] = 1
+                #                 EID = 0
+                #             elif ('MADE IN' in line[1][0] or 'Made In' in line[1][0]) and overwrite[COO] == 0:
+                #                 if len(line2) > 1:
+                #                     List[COO] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[COO] = line2[0][7:].lstrip(' ')
+                #                 overwrite[COO] = 1
+                #                 EID = 0
+                #
+                #             # SLEEVE
+                #             elif 'Sleeve' in line[1][0] and overwrite[Sle] == 0:
+                #                 if len(line2) > 1: List[Sle] = line2[1].lstrip(' ')
+                #                 overwrite[Sle] = 1
+                #                 EID = 0
+                #             elif ('BOX #' in line[1][0] or 'Box #' in line[1][0]) and overwrite[BOX] == 0:
+                #                 if len(line2) > 1:
+                #                     List[BOX] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[BOX] = line2[BOX][5:].lstrip(' ')
+                #                 overwrite[BOX] = 1
+                #                 EID = 0
+                #             elif ('BOX#' in line[1][0] or 'Box#' in line[1][0]) and overwrite[BOX] == 0:
+                #                 if len(line2) > 1:
+                #                     List[BOX] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[BOX] = line2[BOX][4:].lstrip(' ')
+                #                 overwrite[BOX] = 1
+                #                 EID = 0
+                #             elif ('BOX' in line[1][0] or 'Box' in line[1][0]) and overwrite[BOX] == 0:
+                #                 if len(line2) > 1:
+                #                     List[BOX] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[BOX] = line2[BOX][3:].lstrip(' ')
+                #                 overwrite[BOX] = 1
+                #                 EID = 0
+                #
+                #             # EID
+                #             elif EID == 1 and overwrite[FirstE] == 0:  # 上一行測到讓EID變1的
+                #                 List[FirstE] = line2[0].lstrip(' ')  # 填
+                #                 overwrite[FirstE] = 1  # 填了
+                #                 EID = 0  # 不用換行
+                #             elif EID == 2 and overwrite[LastE] == 0:  # 上一行測到讓EID變2的
+                #                 List[LastE] = line2[0].lstrip(' ')
+                #                 overwrite[LastE] = 1
+                #                 EID = 0
+                #
+                #         #######################################
+                #         overwrite[0] = 1
+                #         if decode_result != []:
+                #             wrote = decode_result
+                #             for a in range(len(overwrite) - 2):
+                #                 if overwrite[a] == 0:
+                #                     for res in range(len(decode_result)):
+                #                         if wrote[res] != 'wrote' and decode_result[res] != '':
+                #                             print(decode_result[res])
+                #                             List[a] = decode_result[res]
+                #                             overwrite[a] = 1
+                #                             wrote[res] = 'wrote'
+                #                             break
+                #         writer.writerow(List)  # 印出來
+                #
+                # # EDOM
+                # elif (Comp == 2):
+                #     result_path = './result_dir/Company_OCR/EDOM_tesserect_csv.csv'
+                #     with open(result_path, 'a', newline='') as csvfile:
+                #         writer = csv.writer(csvfile)
+                #         Company, GPN, EPN, Lot, DateCo, QTY, COO, MSL, BOX, REEL = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+                #         List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
+                #         EID = 0
+                #         s = str(img_path)
+                #         List[0] = s.strip("/content/LABEL/")
+                #         overwrite = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                #         for line in result:
+                #             line2 = line[1][0]
+                #             line2 = line2.split(':')
+                #             if ('Date co' in line[1][0] or 'DATE co' in line[1][0]) and overwrite[DateCo] == 0:
+                #                 if len(line2) > 1: List[DateCo] = line2[1]
+                #                 overwrite[DateCo] = 1
+                #                 EID = 0
+                #             elif 'EDOM' in line[1][0] and overwrite[Company] == 0:
+                #                 List[Company] = 'EDOM'
+                #                 overwrite[Company] = 1
+                #                 EID = 0
+                #             elif ('Lot#' in line[1][0] or 'LOT#' in line[1][0]) and overwrite[Lot] == 0:
+                #                 if len(line2) > 1:
+                #                     List[Lot] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[Lot] = line2[0][4:].lstrip(' ')
+                #                 overwrite[Lot] = 1
+                #                 EID = 0
+                #             elif ('Lot' in line[1][0] or 'LOT' in line[1][0]) and overwrite[Lot] == 0:
+                #                 if len(line2) > 1:
+                #                     List[Lot] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[Lot] = line2[0][3:].lstrip(' ')
+                #                 overwrite[Lot] = 1
+                #                 EID = 0
+                #             elif ('Gemalto' in line[1][0] or 'A1') and overwrite[GPN] == 0:
+                #                 if len(line2) > 1: List[GPN] = line2[1].lstrip(' ')
+                #                 overwrite[GPN] = 1
+                #                 EID = 0
+                #             elif ('EDOM PN' in line[1][0]) and overwrite[EPN] == 0:
+                #                 if len(line2) > 1:
+                #                     List[EPN] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[EPN] = line2[0][7:].lstrip(' ')
+                #                 overwrite[EPN] = 1
+                #                 EID = 0
+                #             elif ('EDOMPN' in line[1][0]) and overwrite[EPN] == 0:
+                #                 if len(line2) > 1:
+                #                     List[EPN] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[EPN] = line2[0][6:].lstrip(' ')
+                #                 overwrite[EPN] = 1
+                #                 EID = 0
+                #             elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[
+                #                 QTY] == 0:
+                #                 if len(line2) > 1:
+                #                     List[QTY] = line2[1].lstrip(' I')
+                #                 else:
+                #                     List[QTY] = line2[0][3:].lstrip(' I')
+                #                 overwrite[QTY] = 1
+                #                 EID = 0
+                #             elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
+                #                 if len(line2) > 1:
+                #                     List[COO] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[COO] = line2[0][3:].lstrip(' ')
+                #                 overwrite[COO] = 1
+                #                 EID = 0
+                #             elif ('C.O.O.' in line[1][0] or 'C.o.o.' in line[1][0]) and overwrite[COO] == 0:
+                #                 if len(line2) > 1:
+                #                     List[COO] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[COO] = line2[0][6:].lstrip(' ')
+                #                 overwrite[COO] = 1
+                #                 EID = 0
+                #             elif ('BOX #' in line[1][0] or 'Box #' in line[1][0]) and overwrite[BOX] == 0:
+                #                 if len(line2) > 1:
+                #                     List[BOX] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[BOX] = line2[BOX][5:].lstrip(' ')
+                #                 overwrite[BOX] = 1
+                #                 EID = 0
+                #             elif ('BOX#' in line[1][0] or 'Box#' in line[1][0]) and overwrite[BOX] == 0:
+                #                 if len(line2) > 1:
+                #                     List[BOX] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[BOX] = line2[BOX][4:].lstrip(' ')
+                #                 overwrite[BOX] = 1
+                #                 EID = 0
+                #             elif ('BOX' in line[1][0] or 'Box' in line[1][0]) and overwrite[BOX] == 0:
+                #                 if len(line2) > 1:
+                #                     List[BOX] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[BOX] = line2[BOX][3:].lstrip(' ')
+                #                 overwrite[BOX] = 1
+                #                 EID = 0
+                #             elif ('REEL#' in line[1][0] or 'Reel#' in line[1][0]) and overwrite[BOX] == 0:
+                #                 if len(line2) > 1:
+                #                     List[REEL] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[REEL] = line2[REEL][5:].lstrip(' ')
+                #                 overwrite[REEL] = 1
+                #                 EID = 0
+                #             elif ('REEL' in line[1][0] or 'Reel' in line[1][0]) and overwrite[BOX] == 0:
+                #                 if len(line2) > 1:
+                #                     List[REEL] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[REEL] = line2[REEL][4:].lstrip(' ')
+                #                 overwrite[REEL] = 1
+                #                 EID = 0
+                #             elif ('REEL #' in line[1][0] or 'Reel #' in line[1][0]) and overwrite[BOX] == 0:
+                #                 if len(line2) > 1:
+                #                     List[REEL] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[REEL] = line2[REEL][6:].lstrip(' ')
+                #                 overwrite[REEL] = 1
+                #                 EID = 0
+                #             elif ('MSL' in line[1][0] or 'msl' in line[1][0]) and overwrite[MSL] == 0:
+                #                 if len(line2) > 1:
+                #                     List[MSL] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[MSL] = line2[0][3:].lstrip(' ')
+                #                 overwrite[MSL] = 1
+                #                 EID = 0
+                #         #######################################
+                #         overwrite[0] = 1
+                #         if decode_result != []:
+                #             wrote = decode_result
+                #             for a in range(len(overwrite) - 2):
+                #                 if overwrite[a] == 0:
+                #                     for res in range(len(decode_result)):
+                #                         if wrote[res] != 'wrote' and decode_result[res] != '':
+                #                             print(decode_result[res])
+                #                             List[a] = decode_result[res]
+                #                             overwrite[a] = 1
+                #                             wrote[res] = 'wrote'
+                #                             break
+                #         writer.writerow(List)  # 印出來
+                #
+                # # SkyTra
+                # elif (Comp == 3):
+                #     print(r"////////////////////////////////////")
+                #     print("Comp = " + str(Comp))
+                #     print(r"////////////////////////////////////")
+                #     result_path = './result_dir/Company_OCR/SkyTra_tesserect_csv.csv'
+                #     with open(result_path, 'a', newline='') as csvfile:
+                #         writer = csv.writer(csvfile)
+                #         Company, PartID, DC, QTY, BIN, DATE = 1, 2, 3, 4, 5, 6
+                #         List = ['-', '-', '-', '-', '-', '-', '-']
+                #         s = str(img_path)
+                #         List[0] = s.strip("./")
+                #         overwrite = [0, 0, 0, 0, 0, 0, 0]
+                #         write, pre = 0, 0
+                #         for line in result:
+                #             line2 = line[1][0]
+                #             line2 = line2.split(':')
+                #             if write == 1:
+                #                 write = 0
+                #                 List[pre] = line2[0]
+                #                 overwrite[pre] = 1
+                #
+                #             if ('PARTID' in line[1][0] or 'PART ID' in line[1][0]) and overwrite[PartID] == 0:
+                #                 if len(line2[1]) > 1:
+                #                     List[PartID] = line2[1]
+                #                     overwrite[PartID] = 1
+                #                 elif overwrite[PartID] == 0:
+                #                     write = 1
+                #                     pre = PartID
+                #             elif 'SkyT' in line[1][0] and overwrite[Company] == 0:
+                #                 List[Company] = 'SkyTra'
+                #                 overwrite[Company] = 1
+                #             elif ('D/C' in line[1][0]) and overwrite[DC] == 0:
+                #                 if len(line2[1]) > 1:
+                #                     List[DC] = line2[1].lstrip(' ')
+                #                     overwrite[DC] = 1
+                #                 elif overwrite[DC] == 0:
+                #                     write = 1
+                #                     pre = DC
+                #             elif ('QTY' in line[1][0]) and overwrite[QTY] == 0:
+                #                 if len(line2[1]) > 1:
+                #                     List[QTY] = line2[1].lstrip(' ')
+                #                     overwrite[QTY] = 1
+                #                 elif overwrite[QTY] == 0:
+                #                     write = 1
+                #                     pre = QTY
+                #             elif ('Bin' in line[1][0]) and overwrite[BIN] == 0:
+                #                 if len(line2[1]) > 1:
+                #                     List[BIN] = line2[1].lstrip(' ')
+                #                     overwrite[BIN] = 1
+                #                 elif overwrite[BIN] == 0:
+                #                     write = 1
+                #                     pre = BIN
+                #             elif (('Date' in line[1][0] or 'ROHS' in line[1][0]) and overwrite[DATE] == 0):
+                #                 if ('Date' in line[1][0] and len(line2[1]) > 1):
+                #                     List[DATE] = line2[1].lstrip(' ')
+                #                     overwrite[DATE] = 1
+                #                 elif overwrite[DATE] == 0:
+                #                     write = 1
+                #                     pre = DATE
+                #
+                #         #######################################
+                #         overwrite[0] = 1
+                #         if decode_result != []:
+                #             wrote = decode_result
+                #             for a in range(len(overwrite)):
+                #                 if overwrite[a] == 0:
+                #                     for res in range(len(decode_result)):
+                #                         if wrote[res] != 'wrote' and decode_result[res] != '':
+                #                             print(decode_result[res])
+                #                             List[a] = decode_result[res]
+                #                             overwrite[a] = 1
+                #                             wrote[res] = 'wrote'
+                #                             break
+                #         writer.writerow(List)
+                #
+                # # Silicon
+                # elif (Comp == 4):
+                #     result_path = './result_dir/Company_OCR/Silicon_tesserect_csv.csv'
+                #     with open(result_path, 'a', newline='') as csvfile:
+                #         writer = csv.writer(csvfile)
+                #         Company, Country, SUPPLIER, DATECODE, QTY, CODE, SEALDATE = 1, 2, 3, 4, 5, 6, 7
+                #         List = ['-', '-', '-', '-', '-', '-', '-', '-']
+                #         EID = 0
+                #         s = str(img_path)
+                #         List[0] = s.strip(r"/content/LABEL/")
+                #         overwrite = [0, 0, 0, 0, 0, 0, 0, 0]
+                #         for line in result:
+                #             line2 = line[1][0]
+                #             line2 = line2.split(':')
+                #
+                #             if 'Silicon' in line[1][0] and overwrite[Company] == 0:
+                #                 List[Company] = 'Silicon Laboratories Inc.'
+                #                 overwrite[Company] = 1
+                #                 EID = 0
+                #             elif ('TW' in line[1][0] or 'CN' in line[1][0] or 'cN' in line[1][0] or 'cn' in line[1][
+                #                 0] or 'Tw' in line[1][0]) and overwrite[Country] == 0:
+                #                 List[Country] = line[1][0].lstrip(' AsemblinInd:')
+                #                 overwrite[Country] = 1
+                #                 EID = 0
+                #             elif ('SUPPLIER' in line[1][0] or 'ID' in line[1][0] or 'Customer' in line[1][
+                #                 0] or 'Part' in
+                #                   line[1][0]) and overwrite[SUPPLIER] == 0:
+                #                 if len(line2) > 1:
+                #                     List[SUPPLIER] = line2[1].lstrip(' ')
+                #                 else:
+                #                     List[SUPPLIER] = line2[0][3:].lstrip(' ')
+                #                 overwrite[SUPPLIER] = 1
+                #                 EID = 0
+                #             elif ('DATECODE' in line[1][0] or 'Date Code' in line[1][0]) and overwrite[DATECODE] == 0:
+                #                 if len(line2) > 1: List[DATECODE] = line2[1].lstrip(' ')
+                #                 overwrite[DATECODE] = 1
+                #                 EID = 0
+                #             elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[
+                #                 QTY] == 0:
+                #                 if len(line2) > 1:
+                #                     List[QTY] = line2[1].lstrip(r'QqTtYy() ')
+                #                 else:
+                #                     List[QTY] = line2[0][3:].lstrip(r'QqTtYy() ')
+                #                 overwrite[QTY] = 1
+                #                 EID = 0
+                #
+                #             elif (line[1][0].isdigit() and len(line[1][0]) > 9 or 'Trace Code' in line[1][0] or 'BOX' in
+                #                   line[1][0]) and overwrite[CODE] == 0:
+                #                 if len(line2) > 1:
+                #                     List[CODE] = line2[1].lstrip(r' ')
+                #                 else:
+                #                     List[CODE] = line2[0].lstrip(' ')
+                #                 overwrite[CODE] = 1
+                #                 EID = 0
+                #
+                #             elif ('SEALDATE' in line[1][0] or 'Seal Date' in line[1][0] or 'SEAL DATE' in line[1][
+                #                 0]) and \
+                #                     overwrite[SEALDATE] == 0:
+                #                 if len(line2) > 1:
+                #                     List[SEALDATE] = line2[1].lstrip(r' SEALDTealate')
+                #                 else:
+                #                     List[SEALDATE] = line[1][0].lstrip(r' SEALDTealate')
+                #                 overwrite[SEALDATE] = 1
+                #                 EID = 0
+                #         #######################################
+                #         overwrite[0] = 1
+                #         if decode_result != []:
+                #             wrote = decode_result
+                #             for a in range(len(overwrite)):
+                #                 if overwrite[a] == 0:
+                #                     for res in range(len(decode_result)):
+                #                         if wrote[res] != 'wrote' and decode_result[res] != '':
+                #                             print(decode_result[res])
+                #                             List[a] = decode_result[res]
+                #                             overwrite[a] = 1
+                #                             wrote[res] = 'wrote'
+                #                             break
+                #         writer.writerow(List)
+                #
+                # # AKOUSTIS
+                # elif (Comp == 5):
+                #     result_path = './result_dir/Company_OCR/AKOUSTIS_tesserect_csv.csv'
+                #     with open(result_path, 'a', newline='') as csvfile:
+                #         writer = csv.writer(csvfile)
+                #         Company, Part, LOT, MFG, DTE, QTY = 1, 2, 3, 4, 5, 6  # 哪一項放在第幾格
+                #         List = ['-', '-', '-', '-', '-', '-', '-']
+                #         EID = 0  # 換行用
+                #         s = str(img_path)
+                #         List[0] = s.strip("/content/LABEL/")  # 第一格我放圖片名稱
+                #         overwrite = [0, 0, 0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
+                #         index = 0
+                #         for line in result:
+                #             line2 = line[1][0]
+                #             # print(line2)
+                #
+                #             # Company
+                #             if 'AKOUSTIS' in line[1][0] and overwrite[Company] == 0:  # 那行有公司名
+                #                 List[Company] = 'AKOUSTIS'  # 填公司名
+                #                 overwrite[Company] = 1  # 填了
+                #
+                #                 EID = 0  # 不用換行
+                #
+                #             # Part#
+                #             elif ('Part' in line[1][0]) and overwrite[Part] == 0:
+                #                 if ':' in line[1][0]:
+                #                     line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                #                 elif '#' in line[1][0]:
+                #                     line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                #                 if len(line2) > 1: List[Part] = line2[1].lstrip(
+                #                     ' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
+                #                 overwrite[Part] = 1  # 填了
+                #
+                #                 EID = 0  # 不用換行
+                #
+                #             # LOT#
+                #             elif ('LOT' in line[1][0] or 'P/N' in line[1][0]) and overwrite[LOT] == 0:
+                #                 if ':' in line[1][0]:
+                #                     line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                #                 elif '#' in line[1][0]:
+                #                     line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                #                 if len(line2) > 1: List[LOT] = line2[1].lstrip(' ')
+                #                 overwrite[LOT] = 1
+                #
+                #                 EID = 0
+                #
+                #             # MFG#
+                #             elif 'MFG' in line[1][0] and overwrite[MFG] == 0:
+                #                 if ':' in line[1][0]:
+                #                     line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                #                 elif '#' in line[1][0]:
+                #                     line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                #                 if len(line2) > 1: List[MFG] = line2[1].lstrip(' ')
+                #                 overwrite[MFG] = 1
+                #
+                #                 EID = 0
+                #
+                #             # DTE
+                #             elif 'DTE' in line[1][0] and overwrite[DTE] == 0:
+                #                 if ':' in line[1][0]:
+                #                     line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                #                 elif '#' in line[1][0]:
+                #                     line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                #                 if len(line2) > 1: List[DTE] = line2[1].lstrip(' ')
+                #                 overwrite[DTE] = 1
+                #
+                #                 EID = 0
+                #
+                #             # QTY
+                #             elif 'QTY' in line[1][0] and overwrite[QTY] == 0:
+                #                 if ':' in line[1][0]:
+                #                     line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+                #                 elif '#' in line[1][0]:
+                #                     line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
+                #                 if len(line2) > 1: List[QTY] = line2[1].lstrip(' ')
+                #                 overwrite[QTY] = 1
+                #
+                #                 EID = 0
+                #
+                #         #######################################
+                #         overwrite[0] = 1
+                #         if decode_result != []:
+                #             wrote = decode_result
+                #             for a in range(len(overwrite)):
+                #                 if overwrite[a] == 0:
+                #                     for res in range(len(decode_result)):
+                #                         if wrote[res] != 'wrote' and decode_result[res] != '':
+                #                             print(decode_result[res])
+                #                             List[a] = decode_result[res]
+                #                             overwrite[a] = 1
+                #                             wrote[res] = 'wrote'
+                #                             break
+                #         writer.writerow(List)  # 印出來
+
+                # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
+                end = time.time()
+
+                # 用start - end算出程式運行時間，並且print出來
+                exe_time = end - start
+                print("************************")
+                print(f"執行時間: {exe_time:.4}")
+                print("************************")
+                #####################################################
+                # ----release
+                f.close()
+                fc.close()
+
+            # ----按下X鍵停止錄影並結束程式
+            if cv2.waitKey(1) & 0xFF == ord('x'):
                 break
-
         else:
             print("get image failed")
             break
 
-    #####################################################
-    # 讓相片停留
-    cv2.imshow("YOLO v4 by JohnnyAI", yolo_img)
-    # 儲存原始照片
-    cv2.imwrite('./result_dir/result_pic_orig.jpg', pic)
-    # input("Please press the Enter key to proceed")
-    # 儲存yolo辨識照片
-    cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
-    # input("Please press the Enter key to proceed")
-    #####################################################
 
-    # csv分類
-    # 資料夾裡面每個檔案
-    pathlist = ['./result_dir/result_pic_orig.jpg']  # 用哪個資料夾裡的檔案
-
-    # 公司/項目
-    THALES = (' ', 'Company', 'Date', 'Po no', 'PN', 'Batch#', 'First ID', 'Last ID', 'Quantity', 'COO', 'Sleeve#', 'BOX#')
-    EDOM = (' ', 'Company', 'Gemalto PN', 'EDOM PN', 'LOT#', 'Date code', 'Quantity', 'COO', 'MSL', 'BOX#', 'REEL#')
-    SkyTra = (' ', 'Company', 'PART ID', 'D/C', 'QTY', 'Bin', 'Date')
-    AKOUSTIS = (' ', 'Company', 'Part#', 'LOT#', 'MFG#', 'DTE', 'QTY')
-    Silicon = (' ', 'Company', 'Country', 'SUPPLIER', 'DATECODE', 'QTY', 'CODE', 'SEALDATE')
-    # CSV
-
-
-
-    for path in pathlist:  # path每張檔案的路徑
-
-        Comp = 0  # 公司
-        img_path = './result_dir/result_pic_orig.jpg' # 用這個路徑讀取最後拍下的照片
-        # ----YOLO v4 variable init
-        img = cv2.imread(img_path)
-
-        # 將yolo找到的code部分刪掉
-        # 讀取yolo找到的座標
-        with open(r'.\result_dir\yolo_box.txt', 'r') as f:
-            coordinates = f.read()
-        spilt_coordinates = coordinates.split("\n")
-
-        # 切掉各個code的區域
-        for coordinate in spilt_coordinates:
-            if len(coordinate.split(",")) > 1:
-                x_min = int(coordinate.split(",")[0])
-                x_max = int(coordinate.split(",")[1])
-                y_min = int(coordinate.split(",")[2])
-                y_max = int(coordinate.split(",")[3])
-
-                padding_x = 5
-                padding_y = 8
-
-                # x padding
-                if (x_max - x_min > 2 * padding_x):
-                    x_max -= padding_x
-                    x_min += padding_x
-
-                # y padding
-                if (y_max - y_min > 2 * padding_y):
-                    y_max -= padding_y
-                    y_min += padding_y
-
-                print(x_min)
-                print(x_max)
-                print(y_min)
-                print(y_max)
-                print()
-                # 轉換x_min,x_max,y_min,y_max為x_left,y_top,w,h
-                start_point = (x_min, y_min)
-                end_point = (x_max, y_max)
-                color = (0, 0, 0)
-                # Thickness of -1 will fill the entire shape
-                thickness = -1
-
-                print(start_point)
-                print(end_point)
-
-                img = cv2.rectangle(img, start_point, end_point, color, thickness)
-        # 儲存yolo_crop照片
-        cv2.imwrite('./result_dir/result_pic_yolo_crop.jpg', img)
-        print("***************************")
-
-        # paddleOCR辨識
-        ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
-        img_path = './result_dir/result_pic_yolo_crop.jpg'
-        result = ocr.ocr(img_path, cls=False)
-        decode_result = pyz_decoded_str
-
-        # Tesserect辨識
-        # Tesserect_result = pytesseract.image_to_string(img_path, lang="chi_tra+eng")
-        Tesserect_result = pytesseract.image_to_string(img_path, lang="eng")
-
-        # 匯出辨識結果(txt)
-        result_path = './result_dir/result_txt.txt'
-        tesseract_result_path = './result_dir/tesseract_result_txt.txt'
-        decode_result_path = './result_dir/decode_result_txt.txt'
-        f = open(result_path, 'w')
-        tesseract_f = open(tesseract_result_path, 'w')
-        fc = open(decode_result_path, 'w')
-
-        # 印出字元與位置
-        '''for line in result:
-            f.write(res[1]+'\n')
-            print(line)'''
-
-        # 印出PaddleOCR結果
-        print("PaddleOCR Text Part:\n")
-        for res in result:
-            f.write(res[1][0] + '\n')
-            print(res[1][0])
-
-        # 印出Tesserect結果
-        print("Tesserect Text Part:\n")
-        for res in Tesserect_result.split('\n'):
-            tesseract_f.write(res + '\n')
-            print(res)
-
-        # 印出Barcode/QRCode內容
-        print("Barcode/QRCode Part:\n")
-        if decode_result != []:
-            for res in decode_result:
-                fc.write(res + '\n')
-                print(res)
-        else:
-            print("Decode Fail")
-        #####################################################
-
-        for line in result:
-            if 'THALES' in line[1][0]:
-                Comp = 1
-                break
-            elif 'EDOM' in line[1][0]:
-                Comp = 2
-                break
-            elif 'SkyT' in line[1][0]:
-                Comp = 3
-                break
-            elif 'Silicon' in line[1][0]:
-                Comp = 4
-                break
-            elif 'AKOUSTIS' in line[1][0]:
-                Comp = 5
-                break
-
-        # 檢查是否存在各公司資料夾，不存在的話就創立一個新的(包含標頭)
-        if not os.path.isfile('./result_dir/Company_OCR/THALES_csv.csv'):
-            # paddle_csv
-            with open('./result_dir/Company_OCR/THALES_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-        if not os.path.isfile('./result_dir/Company_OCR/EDOM_csv.csv'):
-            # paddle_csv
-            with open('./result_dir/Company_OCR/EDOM_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(EDOM)  # 列出公司有的項目
-            # tesserect_csv
-            with open('./result_dir/Company_OCR/EDOM_tesserect_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-        if not os.path.isfile('./result_dir/Company_OCR/SkyTra_csv.csv'):
-            # paddle_csv
-            with open('./result_dir/Company_OCR/SkyTra_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(SkyTra)  # 列出公司有的項目
-            # tesserect_csv
-            with open('./result_dir/Company_OCR/SkyTra_tesserect_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-        if not os.path.isfile('./result_dir/Company_OCR/Silicon_csv.csv'):
-            # paddle_csv
-            with open('./result_dir/Company_OCR/Silicon_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(Silicon)  # 列出公司有的項目 (之後看寫在哪 只用跑一次)
-            # tesserect_csv
-            with open('./result_dir/Company_OCR/Silicon_tesserect_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-        if not os.path.isfile('./result_dir/Company_OCR/AKOUSTIS_csv.csv'):
-            # paddle_csv
-            with open('./result_dir/Company_OCR/AKOUSTIS_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(AKOUSTIS)  # 列出公司有的項目
-            # tesserect_csv
-            with open('./result_dir/Company_OCR/AKOUSTIS_tesserect_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-
-        # 檢查是否存在各公司tessersct資料夾，不存在的話就創立一個新的(包含標頭)
-        if not os.path.isfile('./result_dir/Company_OCR/THALES_tesserect_csv.csv'):
-            # tesserect_csv
-            with open('./result_dir/Company_OCR/THALES_tesserect_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-        if not os.path.isfile('./result_dir/Company_OCR/EDOM_tesserect_csv.csv'):
-            # tesserect_csv
-            with open('./result_dir/Company_OCR/EDOM_tesserect_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-        if not os.path.isfile('./result_dir/Company_OCR/SkyTra_tesserect_csv.csv'):
-            # tesserect_csv
-            with open('./result_dir/Company_OCR/SkyTra_tesserect_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-        if not os.path.isfile('./result_dir/Company_OCR/Silicon_tesserect_csv.csv'):
-            # tesserect_csv
-            with open('./result_dir/Company_OCR/Silicon_tesserect_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-        if not os.path.isfile('./result_dir/Company_OCR/AKOUSTIS_tesserect_csv.csv'):
-            # tesserect_csv
-            with open('./result_dir/Company_OCR/AKOUSTIS_tesserect_csv.csv', 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(THALES)  # 列出公司有的項目
-
-
-
-        result_list=[]
-
-        # for line in result:
-        #     line2 = line[1][0]
-        #     print(line2)
-        #     result_list.append(line2)
-        #
-        # print("list content:\n")
-        # print(result_list)
-
-        # THALES
-        if (Comp == 1):
-            result_path = './result_dir/Company_OCR/THALES_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, Date, Po, PN, Batch, FirstE, LastE, QTY, COO, Sle, BOX = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11  # 哪一項放在第幾格
-                List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
-                EID = 0  # 換行用
-                s = str(path)
-                List[0] = s.strip("/content/LABEL/")  # 第一格放圖片名稱
-                overwrite = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
-                for line in result:
-                    line2 = line[1][0]
-                    line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-
-                    # Date
-                    if ('Date' in line[1][0] or 'DATE' in line[1][0]) and overwrite[Date] == 0:  # 那行有Date Date那格沒被填過(有些公司有Date code又有Date ，Date code要寫前面)
-                        if len(line2) > 1:
-                            List[Date] = line2[1]  # 那行有被分割過(有冒號) 填第2個資料
-                        else:
-                            List[Date] = line2[0][4:].lstrip(' ')
-                        overwrite[Date] = 1  # 填完了
-                        EID = 0  # 不用換行
-
-                    # Company
-                    elif 'THALES' in line[1][0] and overwrite[Company] == 0:  # 那行有公司名
-                        List[Company] = 'THALES'  # 填公司名
-                        overwrite[Company] = 1  # 填了
-                        EID = 0  # 不用換行
-
-                    elif ('PO No.' in line[1][0]) or 'P.O. #' in line[1][0] and overwrite[Po] == 0:
-                        if len(line2) > 1:
-                            List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
-                        else:
-                            List[Po] = line2[0][6:].lstrip(' ')
-                        overwrite[Po] = 1  # 填了
-                        EID = 0  # 不用換行
-                    elif ('PONo.' in line[1][0] or 'P.O.#' in line[1][0]) and overwrite[Po] == 0:
-                        if len(line2) > 1:
-                            List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
-                        else:
-                            List[Po] = line2[0][5:].lstrip(' ')
-                        overwrite[Po] = 1  # 填了
-                        EID = 0  # 不用換行
-                    elif ('P.O#' in line[1][0]) and overwrite[Po] == 0:
-                        if len(line2) > 1:
-                            List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
-                        else:
-                            List[Po] = line2[0][4:].lstrip(' ')
-                        overwrite[Po] = 1  # 填了
-                        EID = 0  # 不用換行
-
-                    # PN
-                    elif ('PN' in line[1][0]) and overwrite[PN] == 0:
-                        if len(line2) > 1:
-                            List[PN] = line2[1].lstrip(' ')
-                        else:
-                            List[PN] = line2[0][2:].lstrip(' ')
-                        overwrite[PN] = 1
-                        EID = 0
-                    elif ('P/N' in line[1][0]) and overwrite[PN] == 0:
-                        if len(line2) > 1:
-                            List[PN] = line2[1].lstrip(' ')
-                        else:
-                            List[PN] = line2[0][3:].lstrip(' ')
-                        overwrite[PN] = 1
-                        EID = 0
-
-                    # Batch
-                    elif 'Batch' in line[1][0] and overwrite[Batch] == 0:
-                        if len(line2) > 1: List[Batch] = line2[1].lstrip(' ')
-                        overwrite[Batch] = 1
-                        EID = 0
-
-                    # EID(換行)
-                    elif 'First EID' in line[1][0]:
-                        EID = 1  # 這行沒東西 換行
-                    elif 'Last EID' in line[1][0]:
-                        EID = 2  # 這行沒東西 換行
-                    elif 'First ICCID' in line[1][0]:
-                        if len(line2) > 1:
-                            List[FirstE] = line2[1].lstrip(' ')
-                        else:
-                            List[FirstE] = line2[0][11:].lstrip(' ')
-                        overwrite[FirstE] = 1  # 填了
-                        EID = 0  # 不用換行
-                    elif 'Last ICCID' in line[1][0]:
-                        if len(line2) > 1:
-                            List[LastE] = line2[1].lstrip(' ')
-                        else:
-                            List[LastE] = line2[0][10:].lstrip(' ')
-                        overwrite[LastE] = 1
-                        EID = 0
-
-                    # QTY
-                    elif ('Qty' in line[1][0] or 'QTY' in line[1][0]) and overwrite[QTY] == 0:
-                        if len(line2) > 1:
-                            List[QTY] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
-                        else:
-                            List[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
-                        overwrite[QTY] = 1
-                        EID = 0
-
-                    # COO
-                    elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][3:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-                    elif ('C.O.O.' in line[1][0] or 'C.o.o.' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][6:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-                    elif ('MADE IN' in line[1][0] or 'Made In' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][7:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-
-                    # SLEEVE
-                    elif 'Sleeve' in line[1][0] and overwrite[Sle] == 0:
-                        if len(line2) > 1: List[Sle] = line2[1].lstrip(' ')
-                        overwrite[Sle] = 1
-                        EID = 0
-                    elif ('BOX #' in line[1][0] or 'Box #' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][5:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('BOX#' in line[1][0] or 'Box#' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][4:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('BOX' in line[1][0] or 'Box' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][3:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-
-                    # EID
-                    elif EID == 1 and overwrite[FirstE] == 0:  # 上一行測到讓EID變1的
-                        List[FirstE] = line2[0].lstrip(' ')  # 填
-                        overwrite[FirstE] = 1  # 填了
-                        EID = 0  # 不用換行
-                    elif EID == 2 and overwrite[LastE] == 0:  # 上一行測到讓EID變2的
-                        List[LastE] = line2[0].lstrip(' ')
-                        overwrite[LastE] = 1
-                        EID = 0
-
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite) - 2):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)  # 印出來
-
-        # EDOM
-        elif (Comp == 2):
-            result_path = './result_dir/Company_OCR/EDOM_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, GPN, EPN, Lot, DateCo, QTY, COO, MSL, BOX, REEL = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
-                List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
-                EID = 0
-                s = str(path)
-                List[0] = s.strip("/content/LABEL/")
-                overwrite = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                for line in result:
-                    line2 = line[1][0]
-                    line2 = line2.split(':')
-                    if ('Date co' in line[1][0] or 'DATE co' in line[1][0]) and overwrite[DateCo] == 0:
-                        if len(line2) > 1: List[DateCo] = line2[1]
-                        overwrite[DateCo] = 1
-                        EID = 0
-                    elif 'EDOM' in line[1][0] and overwrite[Company] == 0:
-                        List[Company] = 'EDOM'
-                        overwrite[Company] = 1
-                        EID = 0
-                    elif ('Lot#' in line[1][0] or 'LOT#' in line[1][0]) and overwrite[Lot] == 0:
-                        if len(line2) > 1:
-                            List[Lot] = line2[1].lstrip(' ')
-                        else:
-                            List[Lot] = line2[0][4:].lstrip(' ')
-                        overwrite[Lot] = 1
-                        EID = 0
-                    elif ('Lot' in line[1][0] or 'LOT' in line[1][0]) and overwrite[Lot] == 0:
-                        if len(line2) > 1:
-                            List[Lot] = line2[1].lstrip(' ')
-                        else:
-                            List[Lot] = line2[0][3:].lstrip(' ')
-                        overwrite[Lot] = 1
-                        EID = 0
-                    elif ('Gemalto' in line[1][0] or 'A1') and overwrite[GPN] == 0:
-                        if len(line2) > 1: List[GPN] = line2[1].lstrip(' ')
-                        overwrite[GPN] = 1
-                        EID = 0
-                    elif ('EDOM PN' in line[1][0]) and overwrite[EPN] == 0:
-                        if len(line2) > 1:
-                            List[EPN] = line2[1].lstrip(' ')
-                        else:
-                            List[EPN] = line2[0][7:].lstrip(' ')
-                        overwrite[EPN] = 1
-                        EID = 0
-                    elif ('EDOMPN' in line[1][0]) and overwrite[EPN] == 0:
-                        if len(line2) > 1:
-                            List[EPN] = line2[1].lstrip(' ')
-                        else:
-                            List[EPN] = line2[0][6:].lstrip(' ')
-                        overwrite[EPN] = 1
-                        EID = 0
-                    elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[
-                        QTY] == 0:
-                        if len(line2) > 1:
-                            List[QTY] = line2[1].lstrip(' I')
-                        else:
-                            List[QTY] = line2[0][3:].lstrip(' I')
-                        overwrite[QTY] = 1
-                        EID = 0
-                    elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][3:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-                    elif ('C.O.O.' in line[1][0] or 'C.o.o.' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][6:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-                    elif ('BOX #' in line[1][0] or 'Box #' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][5:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('BOX#' in line[1][0] or 'Box#' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][4:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('BOX' in line[1][0] or 'Box' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][3:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('REEL#' in line[1][0] or 'Reel#' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[REEL] = line2[1].lstrip(' ')
-                        else:
-                            List[REEL] = line2[REEL][5:].lstrip(' ')
-                        overwrite[REEL] = 1
-                        EID = 0
-                    elif ('REEL' in line[1][0] or 'Reel' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[REEL] = line2[1].lstrip(' ')
-                        else:
-                            List[REEL] = line2[REEL][4:].lstrip(' ')
-                        overwrite[REEL] = 1
-                        EID = 0
-                    elif ('REEL #' in line[1][0] or 'Reel #' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[REEL] = line2[1].lstrip(' ')
-                        else:
-                            List[REEL] = line2[REEL][6:].lstrip(' ')
-                        overwrite[REEL] = 1
-                        EID = 0
-                    elif ('MSL' in line[1][0] or 'msl' in line[1][0]) and overwrite[MSL] == 0:
-                        if len(line2) > 1:
-                            List[MSL] = line2[1].lstrip(' ')
-                        else:
-                            List[MSL] = line2[0][3:].lstrip(' ')
-                        overwrite[MSL] = 1
-                        EID = 0
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite) - 2):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)  # 印出來
-
-        # SkyTra
-        elif (Comp == 3):
-            print(r"////////////////////////////////////")
-            print("Comp = "+str(Comp))
-            print(r"////////////////////////////////////")
-            result_path = './result_dir/Company_OCR/SkyTra_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, PartID, DC, QTY, BIN, DATE = 1, 2, 3, 4, 5, 6
-                List = ['-', '-', '-', '-', '-', '-', '-']
-                s = str(path)
-                List[0] = s.strip("./")
-                overwrite = [0, 0, 0, 0, 0, 0, 0]
-                write, pre = 0, 0
-                for line in result:
-                    line2 = line[1][0]
-                    line2 = line2.split(':')
-                    if write == 1:
-                        write = 0
-                        List[pre] = line2[0]
-                        overwrite[pre] = 1
-
-                    if ('PARTID' in line[1][0] or 'PART ID' in line[1][0]) and overwrite[PartID] == 0:
-                        if len(line2[1]) > 1:
-                            List[PartID] = line2[1]
-                            overwrite[PartID] = 1
-                        elif overwrite[PartID] == 0:
-                            write = 1
-                            pre = PartID
-                    elif 'SkyT' in line[1][0] and overwrite[Company] == 0:
-                        List[Company] = 'SkyTra'
-                        overwrite[Company] = 1
-                    elif ('D/C' in line[1][0]) and overwrite[DC] == 0:
-                        if len(line2[1]) > 1:
-                            List[DC] = line2[1].lstrip(' ')
-                            overwrite[DC] = 1
-                        elif overwrite[DC] == 0:
-                            write = 1
-                            pre = DC
-                    elif ('QTY' in line[1][0]) and overwrite[QTY] == 0:
-                        if len(line2[1]) > 1:
-                            List[QTY] = line2[1].lstrip(' ')
-                            overwrite[QTY] = 1
-                        elif overwrite[QTY] == 0:
-                            write = 1
-                            pre = QTY
-                    elif ('Bin' in line[1][0]) and overwrite[BIN] == 0:
-                        if len(line2[1]) > 1:
-                            List[BIN] = line2[1].lstrip(' ')
-                            overwrite[BIN] = 1
-                        elif overwrite[BIN] == 0:
-                            write = 1
-                            pre = BIN
-                    elif (('Date' in line[1][0] or 'ROHS' in line[1][0]) and overwrite[DATE] == 0):
-                        if ('Date' in line[1][0] and len(line2[1]) > 1):
-                            List[DATE] = line2[1].lstrip(' ')
-                            overwrite[DATE] = 1
-                        elif overwrite[DATE] == 0:
-                            write = 1
-                            pre = DATE
-
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite)):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)
-
-        # Silicon
-        elif (Comp == 4):
-            result_path = './result_dir/Company_OCR/Silicon_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, Country, SUPPLIER, DATECODE, QTY, CODE, SEALDATE = 1, 2, 3, 4, 5, 6, 7
-                List = ['-', '-', '-', '-', '-', '-', '-', '-']
-                EID = 0
-                s = str(path)
-                List[0] = s.strip(r"/content/LABEL/")
-                overwrite = [0, 0, 0, 0, 0, 0, 0, 0]
-                for line in result:
-                    line2 = line[1][0]
-                    line2 = line2.split(':')
-
-                    if 'Silicon' in line[1][0] and overwrite[Company] == 0:
-                        List[Company] = 'Silicon Laboratories Inc.'
-                        overwrite[Company] = 1
-                        EID = 0
-                    elif ('TW' in line[1][0] or 'CN' in line[1][0] or 'cN' in line[1][0] or 'cn' in line[1][
-                        0] or 'Tw' in line[1][0]) and overwrite[Country] == 0:
-                        List[Country] = line[1][0].lstrip(' AsemblinInd:')
-                        overwrite[Country] = 1
-                        EID = 0
-                    elif ('SUPPLIER' in line[1][0] or 'ID' in line[1][0] or 'Customer' in line[1][0] or 'Part' in
-                          line[1][0]) and overwrite[SUPPLIER] == 0:
-                        if len(line2) > 1:
-                            List[SUPPLIER] = line2[1].lstrip(' ')
-                        else:
-                            List[SUPPLIER] = line2[0][3:].lstrip(' ')
-                        overwrite[SUPPLIER] = 1
-                        EID = 0
-                    elif ('DATECODE' in line[1][0] or 'Date Code' in line[1][0]) and overwrite[DATECODE] == 0:
-                        if len(line2) > 1: List[DATECODE] = line2[1].lstrip(' ')
-                        overwrite[DATECODE] = 1
-                        EID = 0
-                    elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[QTY] == 0:
-                        if len(line2) > 1:
-                            List[QTY] = line2[1].lstrip(r'QqTtYy() ')
-                        else:
-                            List[QTY] = line2[0][3:].lstrip(r'QqTtYy() ')
-                        overwrite[QTY] = 1
-                        EID = 0
-
-                    elif (line[1][0].isdigit() and len(line[1][0]) > 9 or 'Trace Code' in line[1][0] or 'BOX' in
-                          line[1][0]) and overwrite[CODE] == 0:
-                        if len(line2) > 1:
-                            List[CODE] = line2[1].lstrip(r' ')
-                        else:
-                            List[CODE] = line2[0].lstrip(' ')
-                        overwrite[CODE] = 1
-                        EID = 0
-
-                    elif ('SEALDATE' in line[1][0] or 'Seal Date' in line[1][0] or 'SEAL DATE' in line[1][0]) and \
-                            overwrite[SEALDATE] == 0:
-                        if len(line2) > 1:
-                            List[SEALDATE] = line2[1].lstrip(r' SEALDTealate')
-                        else:
-                            List[SEALDATE] = line[1][0].lstrip(r' SEALDTealate')
-                        overwrite[SEALDATE] = 1
-                        EID = 0
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite)):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)
-
-        # AKOUSTIS
-        elif (Comp == 5):
-            result_path = './result_dir/Company_OCR/AKOUSTIS_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, Part, LOT, MFG, DTE, QTY = 1, 2, 3, 4, 5,6 # 哪一項放在第幾格
-                List = ['-', '-', '-', '-', '-', '-', '-']
-                EID = 0  # 換行用
-                s = str(path)
-                List[0] = s.strip("/content/LABEL/")  # 第一格我放圖片名稱
-                overwrite = [0, 0, 0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
-                index = 0
-                for line in result:
-                    line2 = line[1][0]
-                    # print(line2)
-
-                    # Company
-                    if 'AKOUSTIS' in line[1][0] and overwrite[Company] == 0:  # 那行有公司名
-                        List[Company] = 'AKOUSTIS'  # 填公司名
-                        overwrite[Company] = 1  # 填了
-
-                        EID = 0  # 不用換行
-
-                    # Part#
-                    elif ('Part' in line[1][0]) and overwrite[Part] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[Part] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
-                        overwrite[Part] = 1  # 填了
-
-                        EID = 0  # 不用換行
-
-                    # LOT#
-                    elif ('LOT' in line[1][0] or 'P/N' in line[1][0]) and overwrite[LOT] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[LOT] = line2[1].lstrip(' ')
-                        overwrite[LOT] = 1
-
-                        EID = 0
-
-                    # MFG#
-                    elif 'MFG' in line[1][0] and overwrite[MFG] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[MFG] = line2[1].lstrip(' ')
-                        overwrite[MFG] = 1
-
-                        EID = 0
-
-                    # DTE
-                    elif 'DTE' in line[1][0] and overwrite[DTE] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[DTE] = line2[1].lstrip(' ')
-                        overwrite[DTE] = 1
-
-                        EID = 0
-
-                    # QTY
-                    elif 'QTY' in line[1][0] and overwrite[QTY] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[QTY] = line2[1].lstrip(' ')
-                        overwrite[QTY] = 1
-
-                        EID = 0
-
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite)):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)  # 印出來
-
-
-        # 將tesserect的結果也匯到csv中
-        if (Comp == 1):
-            result_path = './result_dir/Company_OCR/THALES_tesserect_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, Date, Po, PN, Batch, FirstE, LastE, QTY, COO, Sle, BOX = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11  # 哪一項放在第幾格
-                List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
-                EID = 0  # 換行用
-                s = str(path)
-                List[0] = s.strip("/content/LABEL/")  # 第一格放圖片名稱
-                overwrite = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
-                for line in result:
-                    line2 = line[1][0]
-                    line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-
-                    # Date
-                    if ('Date' in line[1][0] or 'DATE' in line[1][0]) and overwrite[Date] == 0:  # 那行有Date Date那格沒被填過(有些公司有Date code又有Date ，Date code要寫前面)
-                        if len(line2) > 1:
-                            List[Date] = line2[1]  # 那行有被分割過(有冒號) 填第2個資料
-                        else:
-                            List[Date] = line2[0][4:].lstrip(' ')
-                        overwrite[Date] = 1  # 填完了
-                        EID = 0  # 不用換行
-
-                    # Company
-                    elif 'THALES' in line[1][0] and overwrite[Company] == 0:  # 那行有公司名
-                        List[Company] = 'THALES'  # 填公司名
-                        overwrite[Company] = 1  # 填了
-                        EID = 0  # 不用換行
-
-                    elif ('PO No.' in line[1][0]) or 'P.O. #' in line[1][0] and overwrite[Po] == 0:
-                        if len(line2) > 1:
-                            List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
-                        else:
-                            List[Po] = line2[0][6:].lstrip(' ')
-                        overwrite[Po] = 1  # 填了
-                        EID = 0  # 不用換行
-                    elif ('PONo.' in line[1][0] or 'P.O.#' in line[1][0]) and overwrite[Po] == 0:
-                        if len(line2) > 1:
-                            List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
-                        else:
-                            List[Po] = line2[0][5:].lstrip(' ')
-                        overwrite[Po] = 1  # 填了
-                        EID = 0  # 不用換行
-                    elif ('P.O#' in line[1][0]) and overwrite[Po] == 0:
-                        if len(line2) > 1:
-                            List[Po] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
-                        else:
-                            List[Po] = line2[0][4:].lstrip(' ')
-                        overwrite[Po] = 1  # 填了
-                        EID = 0  # 不用換行
-
-                    # PN
-                    elif ('PN' in line[1][0]) and overwrite[PN] == 0:
-                        if len(line2) > 1:
-                            List[PN] = line2[1].lstrip(' ')
-                        else:
-                            List[PN] = line2[0][2:].lstrip(' ')
-                        overwrite[PN] = 1
-                        EID = 0
-                    elif ('P/N' in line[1][0]) and overwrite[PN] == 0:
-                        if len(line2) > 1:
-                            List[PN] = line2[1].lstrip(' ')
-                        else:
-                            List[PN] = line2[0][3:].lstrip(' ')
-                        overwrite[PN] = 1
-                        EID = 0
-
-                    # Batch
-                    elif 'Batch' in line[1][0] and overwrite[Batch] == 0:
-                        if len(line2) > 1: List[Batch] = line2[1].lstrip(' ')
-                        overwrite[Batch] = 1
-                        EID = 0
-
-                    # EID(換行)
-                    elif 'First EID' in line[1][0]:
-                        EID = 1  # 這行沒東西 換行
-                    elif 'Last EID' in line[1][0]:
-                        EID = 2  # 這行沒東西 換行
-                    elif 'First ICCID' in line[1][0]:
-                        if len(line2) > 1:
-                            List[FirstE] = line2[1].lstrip(' ')
-                        else:
-                            List[FirstE] = line2[0][11:].lstrip(' ')
-                        overwrite[FirstE] = 1  # 填了
-                        EID = 0  # 不用換行
-                    elif 'Last ICCID' in line[1][0]:
-                        if len(line2) > 1:
-                            List[LastE] = line2[1].lstrip(' ')
-                        else:
-                            List[LastE] = line2[0][10:].lstrip(' ')
-                        overwrite[LastE] = 1
-                        EID = 0
-
-                    # QTY
-                    elif ('Qty' in line[1][0] or 'QTY' in line[1][0]) and overwrite[QTY] == 0:
-                        if len(line2) > 1:
-                            List[QTY] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
-                        else:
-                            List[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
-                        overwrite[QTY] = 1
-                        EID = 0
-
-                    # COO
-                    elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][3:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-                    elif ('C.O.O.' in line[1][0] or 'C.o.o.' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][6:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-                    elif ('MADE IN' in line[1][0] or 'Made In' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][7:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-
-                    # SLEEVE
-                    elif 'Sleeve' in line[1][0] and overwrite[Sle] == 0:
-                        if len(line2) > 1: List[Sle] = line2[1].lstrip(' ')
-                        overwrite[Sle] = 1
-                        EID = 0
-                    elif ('BOX #' in line[1][0] or 'Box #' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][5:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('BOX#' in line[1][0] or 'Box#' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][4:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('BOX' in line[1][0] or 'Box' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][3:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-
-                    # EID
-                    elif EID == 1 and overwrite[FirstE] == 0:  # 上一行測到讓EID變1的
-                        List[FirstE] = line2[0].lstrip(' ')  # 填
-                        overwrite[FirstE] = 1  # 填了
-                        EID = 0  # 不用換行
-                    elif EID == 2 and overwrite[LastE] == 0:  # 上一行測到讓EID變2的
-                        List[LastE] = line2[0].lstrip(' ')
-                        overwrite[LastE] = 1
-                        EID = 0
-
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite) - 2):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)  # 印出來
-
-        # EDOM
-        elif (Comp == 2):
-            result_path = './result_dir/Company_OCR/EDOM_tesserect_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, GPN, EPN, Lot, DateCo, QTY, COO, MSL, BOX, REEL = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
-                List = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
-                EID = 0
-                s = str(path)
-                List[0] = s.strip("/content/LABEL/")
-                overwrite = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                for line in result:
-                    line2 = line[1][0]
-                    line2 = line2.split(':')
-                    if ('Date co' in line[1][0] or 'DATE co' in line[1][0]) and overwrite[DateCo] == 0:
-                        if len(line2) > 1: List[DateCo] = line2[1]
-                        overwrite[DateCo] = 1
-                        EID = 0
-                    elif 'EDOM' in line[1][0] and overwrite[Company] == 0:
-                        List[Company] = 'EDOM'
-                        overwrite[Company] = 1
-                        EID = 0
-                    elif ('Lot#' in line[1][0] or 'LOT#' in line[1][0]) and overwrite[Lot] == 0:
-                        if len(line2) > 1:
-                            List[Lot] = line2[1].lstrip(' ')
-                        else:
-                            List[Lot] = line2[0][4:].lstrip(' ')
-                        overwrite[Lot] = 1
-                        EID = 0
-                    elif ('Lot' in line[1][0] or 'LOT' in line[1][0]) and overwrite[Lot] == 0:
-                        if len(line2) > 1:
-                            List[Lot] = line2[1].lstrip(' ')
-                        else:
-                            List[Lot] = line2[0][3:].lstrip(' ')
-                        overwrite[Lot] = 1
-                        EID = 0
-                    elif ('Gemalto' in line[1][0] or 'A1') and overwrite[GPN] == 0:
-                        if len(line2) > 1: List[GPN] = line2[1].lstrip(' ')
-                        overwrite[GPN] = 1
-                        EID = 0
-                    elif ('EDOM PN' in line[1][0]) and overwrite[EPN] == 0:
-                        if len(line2) > 1:
-                            List[EPN] = line2[1].lstrip(' ')
-                        else:
-                            List[EPN] = line2[0][7:].lstrip(' ')
-                        overwrite[EPN] = 1
-                        EID = 0
-                    elif ('EDOMPN' in line[1][0]) and overwrite[EPN] == 0:
-                        if len(line2) > 1:
-                            List[EPN] = line2[1].lstrip(' ')
-                        else:
-                            List[EPN] = line2[0][6:].lstrip(' ')
-                        overwrite[EPN] = 1
-                        EID = 0
-                    elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[
-                        QTY] == 0:
-                        if len(line2) > 1:
-                            List[QTY] = line2[1].lstrip(' I')
-                        else:
-                            List[QTY] = line2[0][3:].lstrip(' I')
-                        overwrite[QTY] = 1
-                        EID = 0
-                    elif ('COO' in line[1][0] or 'Coo' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][3:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-                    elif ('C.O.O.' in line[1][0] or 'C.o.o.' in line[1][0]) and overwrite[COO] == 0:
-                        if len(line2) > 1:
-                            List[COO] = line2[1].lstrip(' ')
-                        else:
-                            List[COO] = line2[0][6:].lstrip(' ')
-                        overwrite[COO] = 1
-                        EID = 0
-                    elif ('BOX #' in line[1][0] or 'Box #' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][5:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('BOX#' in line[1][0] or 'Box#' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][4:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('BOX' in line[1][0] or 'Box' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[BOX] = line2[1].lstrip(' ')
-                        else:
-                            List[BOX] = line2[BOX][3:].lstrip(' ')
-                        overwrite[BOX] = 1
-                        EID = 0
-                    elif ('REEL#' in line[1][0] or 'Reel#' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[REEL] = line2[1].lstrip(' ')
-                        else:
-                            List[REEL] = line2[REEL][5:].lstrip(' ')
-                        overwrite[REEL] = 1
-                        EID = 0
-                    elif ('REEL' in line[1][0] or 'Reel' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[REEL] = line2[1].lstrip(' ')
-                        else:
-                            List[REEL] = line2[REEL][4:].lstrip(' ')
-                        overwrite[REEL] = 1
-                        EID = 0
-                    elif ('REEL #' in line[1][0] or 'Reel #' in line[1][0]) and overwrite[BOX] == 0:
-                        if len(line2) > 1:
-                            List[REEL] = line2[1].lstrip(' ')
-                        else:
-                            List[REEL] = line2[REEL][6:].lstrip(' ')
-                        overwrite[REEL] = 1
-                        EID = 0
-                    elif ('MSL' in line[1][0] or 'msl' in line[1][0]) and overwrite[MSL] == 0:
-                        if len(line2) > 1:
-                            List[MSL] = line2[1].lstrip(' ')
-                        else:
-                            List[MSL] = line2[0][3:].lstrip(' ')
-                        overwrite[MSL] = 1
-                        EID = 0
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite) - 2):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)  # 印出來
-
-        # SkyTra
-        elif (Comp == 3):
-            print(r"////////////////////////////////////")
-            print("Comp = "+str(Comp))
-            print(r"////////////////////////////////////")
-            result_path = './result_dir/Company_OCR/SkyTra_tesserect_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, PartID, DC, QTY, BIN, DATE = 1, 2, 3, 4, 5, 6
-                List = ['-', '-', '-', '-', '-', '-', '-']
-                s = str(path)
-                List[0] = s.strip("./")
-                overwrite = [0, 0, 0, 0, 0, 0, 0]
-                write, pre = 0, 0
-                for line in result:
-                    line2 = line[1][0]
-                    line2 = line2.split(':')
-                    if write == 1:
-                        write = 0
-                        List[pre] = line2[0]
-                        overwrite[pre] = 1
-
-                    if ('PARTID' in line[1][0] or 'PART ID' in line[1][0]) and overwrite[PartID] == 0:
-                        if len(line2[1]) > 1:
-                            List[PartID] = line2[1]
-                            overwrite[PartID] = 1
-                        elif overwrite[PartID] == 0:
-                            write = 1
-                            pre = PartID
-                    elif 'SkyT' in line[1][0] and overwrite[Company] == 0:
-                        List[Company] = 'SkyTra'
-                        overwrite[Company] = 1
-                    elif ('D/C' in line[1][0]) and overwrite[DC] == 0:
-                        if len(line2[1]) > 1:
-                            List[DC] = line2[1].lstrip(' ')
-                            overwrite[DC] = 1
-                        elif overwrite[DC] == 0:
-                            write = 1
-                            pre = DC
-                    elif ('QTY' in line[1][0]) and overwrite[QTY] == 0:
-                        if len(line2[1]) > 1:
-                            List[QTY] = line2[1].lstrip(' ')
-                            overwrite[QTY] = 1
-                        elif overwrite[QTY] == 0:
-                            write = 1
-                            pre = QTY
-                    elif ('Bin' in line[1][0]) and overwrite[BIN] == 0:
-                        if len(line2[1]) > 1:
-                            List[BIN] = line2[1].lstrip(' ')
-                            overwrite[BIN] = 1
-                        elif overwrite[BIN] == 0:
-                            write = 1
-                            pre = BIN
-                    elif (('Date' in line[1][0] or 'ROHS' in line[1][0]) and overwrite[DATE] == 0):
-                        if ('Date' in line[1][0] and len(line2[1]) > 1):
-                            List[DATE] = line2[1].lstrip(' ')
-                            overwrite[DATE] = 1
-                        elif overwrite[DATE] == 0:
-                            write = 1
-                            pre = DATE
-
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite)):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)
-
-        # Silicon
-        elif (Comp == 4):
-            result_path = './result_dir/Company_OCR/Silicon_tesserect_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, Country, SUPPLIER, DATECODE, QTY, CODE, SEALDATE = 1, 2, 3, 4, 5, 6, 7
-                List = ['-', '-', '-', '-', '-', '-', '-', '-']
-                EID = 0
-                s = str(path)
-                List[0] = s.strip(r"/content/LABEL/")
-                overwrite = [0, 0, 0, 0, 0, 0, 0, 0]
-                for line in result:
-                    line2 = line[1][0]
-                    line2 = line2.split(':')
-
-                    if 'Silicon' in line[1][0] and overwrite[Company] == 0:
-                        List[Company] = 'Silicon Laboratories Inc.'
-                        overwrite[Company] = 1
-                        EID = 0
-                    elif ('TW' in line[1][0] or 'CN' in line[1][0] or 'cN' in line[1][0] or 'cn' in line[1][
-                        0] or 'Tw' in line[1][0]) and overwrite[Country] == 0:
-                        List[Country] = line[1][0].lstrip(' AsemblinInd:')
-                        overwrite[Country] = 1
-                        EID = 0
-                    elif ('SUPPLIER' in line[1][0] or 'ID' in line[1][0] or 'Customer' in line[1][0] or 'Part' in
-                          line[1][0]) and overwrite[SUPPLIER] == 0:
-                        if len(line2) > 1:
-                            List[SUPPLIER] = line2[1].lstrip(' ')
-                        else:
-                            List[SUPPLIER] = line2[0][3:].lstrip(' ')
-                        overwrite[SUPPLIER] = 1
-                        EID = 0
-                    elif ('DATECODE' in line[1][0] or 'Date Code' in line[1][0]) and overwrite[DATECODE] == 0:
-                        if len(line2) > 1: List[DATECODE] = line2[1].lstrip(' ')
-                        overwrite[DATECODE] = 1
-                        EID = 0
-                    elif ('Qty' in line[1][0] or 'QUAN' in line[1][0] or 'QTY' in line[1][0]) and overwrite[QTY] == 0:
-                        if len(line2) > 1:
-                            List[QTY] = line2[1].lstrip(r'QqTtYy() ')
-                        else:
-                            List[QTY] = line2[0][3:].lstrip(r'QqTtYy() ')
-                        overwrite[QTY] = 1
-                        EID = 0
-
-                    elif (line[1][0].isdigit() and len(line[1][0]) > 9 or 'Trace Code' in line[1][0] or 'BOX' in
-                          line[1][0]) and overwrite[CODE] == 0:
-                        if len(line2) > 1:
-                            List[CODE] = line2[1].lstrip(r' ')
-                        else:
-                            List[CODE] = line2[0].lstrip(' ')
-                        overwrite[CODE] = 1
-                        EID = 0
-
-                    elif ('SEALDATE' in line[1][0] or 'Seal Date' in line[1][0] or 'SEAL DATE' in line[1][0]) and \
-                            overwrite[SEALDATE] == 0:
-                        if len(line2) > 1:
-                            List[SEALDATE] = line2[1].lstrip(r' SEALDTealate')
-                        else:
-                            List[SEALDATE] = line[1][0].lstrip(r' SEALDTealate')
-                        overwrite[SEALDATE] = 1
-                        EID = 0
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite)):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)
-
-        # AKOUSTIS
-        elif (Comp == 5):
-            result_path = './result_dir/Company_OCR/AKOUSTIS_tesserect_csv.csv'
-            with open(result_path, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                Company, Part, LOT, MFG, DTE, QTY = 1, 2, 3, 4, 5,6 # 哪一項放在第幾格
-                List = ['-', '-', '-', '-', '-', '-', '-']
-                EID = 0  # 換行用
-                s = str(path)
-                List[0] = s.strip("/content/LABEL/")  # 第一格我放圖片名稱
-                overwrite = [0, 0, 0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
-                index = 0
-                for line in result:
-                    line2 = line[1][0]
-                    # print(line2)
-
-                    # Company
-                    if 'AKOUSTIS' in line[1][0] and overwrite[Company] == 0:  # 那行有公司名
-                        List[Company] = 'AKOUSTIS'  # 填公司名
-                        overwrite[Company] = 1  # 填了
-
-                        EID = 0  # 不用換行
-
-                    # Part#
-                    elif ('Part' in line[1][0]) and overwrite[Part] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[Part] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料 lstrip(刪前面空格)
-                        overwrite[Part] = 1  # 填了
-
-                        EID = 0  # 不用換行
-
-                    # LOT#
-                    elif ('LOT' in line[1][0] or 'P/N' in line[1][0]) and overwrite[LOT] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[LOT] = line2[1].lstrip(' ')
-                        overwrite[LOT] = 1
-
-                        EID = 0
-
-                    # MFG#
-                    elif 'MFG' in line[1][0] and overwrite[MFG] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[MFG] = line2[1].lstrip(' ')
-                        overwrite[MFG] = 1
-
-                        EID = 0
-
-                    # DTE
-                    elif 'DTE' in line[1][0] and overwrite[DTE] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[DTE] = line2[1].lstrip(' ')
-                        overwrite[DTE] = 1
-
-                        EID = 0
-
-                    # QTY
-                    elif 'QTY' in line[1][0] and overwrite[QTY] == 0:
-                        if ':' in line[1][0] :
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-                        elif'#'in line[1][0] :
-                            line2 = line2.split('#')  # line[1][0]是偵測到整行的 line2有用#分割
-                        if len(line2) > 1: List[QTY] = line2[1].lstrip(' ')
-                        overwrite[QTY] = 1
-
-                        EID = 0
-
-                #######################################
-                overwrite[0] = 1
-                if decode_result != []:
-                    wrote = decode_result
-                    for a in range(len(overwrite)):
-                        if overwrite[a] == 0:
-                            for res in range(len(decode_result)):
-                                if wrote[res] != 'wrote' and decode_result[res] != '':
-                                    print(decode_result[res])
-                                    List[a] = decode_result[res]
-                                    overwrite[a] = 1
-                                    wrote[res] = 'wrote'
-                                    break
-                writer.writerow(List)  # 印出來
-
-
-    #####################################################
-    # ----release
-    f.close()
-    fc.close()
     yolo_v4.sess.close()
     cap.release()
 
