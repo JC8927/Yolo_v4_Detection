@@ -1,5 +1,7 @@
 import cv2,time
 import numpy
+import json
+import retinex
 from numpy import number
 import tensorflow
 from src.YOLO import YOLO
@@ -275,6 +277,40 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8):
                 img_path = './result_dir/result_pic_orig.jpg'  # 用這個路徑讀取最後拍下的照片
                 # ----YOLO v4 variable init
                 img = cv2.imread(img_path)
+
+                # 做retinex前處理)
+
+                with open('config.json', 'r') as f:
+                    config = json.load(f)
+
+                # 共有三種模式
+
+                # msrcr處理
+                img = retinex.MSRCR(
+                    img,
+                    config['sigma_list'],
+                    config['G'],
+                    config['b'],
+                    config['alpha'],
+                    config['beta'],
+                    config['low_clip'],
+                    config['high_clip']
+                )
+
+                # # amsrcr處理
+                # img = retinex.automatedMSRCR(
+                #     img,
+                #     config['sigma_list']
+                # )
+                #
+                # # msrcp處理
+                # img = retinex.MSRCP(
+                #     img,
+                #     config['sigma_list'],
+                #     config['low_clip'],
+                #     config['high_clip']
+                # )
+
 
                 # 將yolo找到的code部分刪掉
                 # 讀取yolo找到的座標
