@@ -1099,7 +1099,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.8):
 
     crap_mod_img_path = "./result_dir/process/crap_mod_img/"
     crap_sha_img_path = './result_dir/process/crap_sha_img/'
-    final_result_img_path = './result_dir/result_Images/'  ##crap_sha_result
+    final_result_img_path = './result_dir/process/result_Images/'  ##crap_sha_result #前處理後圖片位址
 
     img_name = os.listdir(mask_img_path)
     img_num = len(img_name)
