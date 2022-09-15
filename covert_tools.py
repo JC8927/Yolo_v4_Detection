@@ -31,6 +31,7 @@ def convert_weight(model_path,output_dir,size):
 
 if __name__ == "__main__":
     #----convert_weight
+
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4.weights"
 
     model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4-obj_2000.weights"

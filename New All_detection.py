@@ -240,14 +240,29 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8):
     #----YOLO v4 init
     yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
 
-
+    decode_list = []
     while (cap.isOpened()):
 
         ret, img = cap.read()
         pic = numpy.array(img)
+
+        # 建立decode_list儲存解碼內容
+
+        decode_result_path = './result_dir/decode_result_txt.txt'
+        fc = open(decode_result_path, 'w')
+
+
         if ret is True:
             #----YOLO v4 detection
             yolo_img,pyz_decoded_str = yolo_v4.detection(img)
+
+            # 在錄影的過程中儲存解碼內容
+            decode_result = pyz_decoded_str
+            if decode_result != []:
+                for res in decode_result:
+                    # 一樣的decode結果不重複紀錄
+                    if res not in set(decode_list):
+                        decode_list.append(res)
 
             #----FPS calculation
             if frame_count == 0:
@@ -307,14 +322,9 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8):
                 # ----YOLO v4 variable init
                 img = cv2.imread(img_path)
 
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                mod_img = modify_contrast_and_brightness2(img, 0, 50)  # 調整圖片對比
-                ret, th1 = cv2.threshold(mod_img, 120, 255, cv2.THRESH_BINARY)  # 二值化圖片
-                img = sharpen(mod_img, th1, 0.6)  # 疊加二值化圖片與調完對比之圖片 0.6為兩圖佔比
-                cv2.imwrite('./result_dir/result_pic_yolo_crap_sha.jpg', img)
+
 
                 # 做retinex前處理)
-
                 with open('config.json', 'r') as f:
                     config = json.load(f)
 
@@ -331,6 +341,13 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8):
                 #     config['low_clip'],
                 #     config['high_clip']
                 # )
+
+                # 做sha_crap前處理
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                mod_img = modify_contrast_and_brightness2(img, 0, 50)  # 調整圖片對比
+                ret, th1 = cv2.threshold(mod_img, 120, 255, cv2.THRESH_BINARY)  # 二值化圖片
+                img = sharpen(mod_img, th1, 0.6)  # 疊加二值化圖片與調完對比之圖片 0.6為兩圖佔比
+                cv2.imwrite('./result_dir/result_pic_yolo_crap_sha.jpg', img)
 
                 # # amsrcr處理
                 # img = retinex.automatedMSRCR(
@@ -397,13 +414,14 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8):
                 # Tesserect_result = pytesseract.image_to_string(img_path, lang="eng")
 
 
+
                 # 匯出辨識結果(txt)
                 result_path = './result_dir/result_txt.txt'
                 tesseract_result_path = './result_dir/tesseract_result_txt.txt'
-                decode_result_path = './result_dir/decode_result_txt.txt'
+                # decode_result_path = './result_dir/decode_result_txt.txt'
                 f = open(result_path, 'w')
                 # tesseract_f = open(tesseract_result_path, 'w')
-                fc = open(decode_result_path, 'w')
+                # fc = open(decode_result_path, 'w')
 
 
 
@@ -421,12 +439,16 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8):
 
                 # 印出Barcode/QRCode內容
                 print("Barcode/QRCode Part:\n")
-                if decode_result != []:
-                    for res in decode_result:
-                        fc.write(res + '\n')
-                        print(res)
-                else:
-                    print("Decode Fail")
+                for decode in decode_list:
+                    fc.write(decode+'\n')
+                    print(decode)
+                decode_list = []
+                # if decode_result != []:
+                #     for res in decode_result:
+                #         fc.write(res + '\n')
+                #         print(res)
+                # else:
+                #     print("Decode Fail")
                 #####################################################
                 # 判斷標籤屬於哪個公司
                 for line in result:
