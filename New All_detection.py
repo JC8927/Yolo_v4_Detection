@@ -263,7 +263,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8):
                     # 一樣的decode結果不重複紀錄
                     if res not in set(decode_list):
                         decode_list.append(res)
-
+                        print(decode_list)
             #----FPS calculation
             if frame_count == 0:
                 d_t = time.time()
