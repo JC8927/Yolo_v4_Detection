@@ -3943,8 +3943,9 @@ if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
     GPU_ratio = 0.8
-    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
+    # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
     # photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
-    # photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio)
+
+    photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio)
     # photo_obj_detection_2(model_path,GPU_ratio=GPU_ratio)
     # cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
