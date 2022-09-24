@@ -225,6 +225,17 @@ def sharpen(img,img_2,para_1):
     blur_img=cv2.addWeighted(img,para_1,img_2,1-para_1,0)
     return blur_img
 
+#################tag查詢功能開始#################
+def compare(str1, str2):
+    tmp1 = str1.replace(" ", "")
+    tmp2 = str2.replace(" ", "")
+
+    if tmp1 in tmp2 or tmp2 in tmp1:
+        return True
+    else:
+        return False
+#################tag查詢功能結束################
+
 #圖像前處理追加函式end#
 
 
@@ -2381,6 +2392,44 @@ def photo_obj_detection_HD(model_path,GPU_ratio=0.8):
         print(f"執行時間: {exe_time:.4}")
         print("************************")
 
+        #################tag查詢功能開始#################
+
+
+        data = []
+        col = []
+        spilt_s = []
+        num = input("總欄位數量: ")  # excel中要有多少個欄位
+
+        List = []
+        for i in range(int(num)):
+            List.append('-')
+
+        index = 0
+
+        for i in range(int(num)):
+            col_tmp = input("輸入欄位名稱: ")  # 每個欄位的名稱
+            spilt_tmp = input("輸入分隔符號，若無分隔符號則輸入欄位最後一個字母: ")
+            col.append(col_tmp)
+            spilt_s.append(spilt_tmp)
+            feat = []
+            write, pre = 0, 0
+            for res in result:
+                res1 = res[1][0]
+                res1 = res1.split(spilt_tmp)
+                if write == 1:
+                    write = 0
+                    List[pre] = res1[0]
+                    index += 1
+                if compare(col_tmp, res[1][0]):
+                    if len(res1[1]) > 1:
+                        List[index] = res1[1]
+                        index += 1
+                    else:
+                        write = 1
+                        pre = index
+
+        print(List)
+        #################tag查詢功能結束#################
 
     #####################################################
     # ----release
