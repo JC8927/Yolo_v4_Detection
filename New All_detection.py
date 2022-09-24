@@ -3454,7 +3454,6 @@ if __name__ == "__main__":
     GPU_ratio = 0.8
     # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio)
     # photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
-
-    photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio)
-    # photo_obj_detection_2(model_path,GPU_ratio=GPU_ratio)
+    real_time_obj_detection_chioce(model_path,GPU_ratio=GPU_ratio)
+    # photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio)
     # cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio)
