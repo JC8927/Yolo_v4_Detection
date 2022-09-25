@@ -311,12 +311,12 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                 # ----YOLO v4 variable init
                 img = cv2.imread(img_path)
 
-                # 做sha_crap前處理
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                mod_img = modify_contrast_and_brightness2(img, 0, 50)  # 調整圖片對比
-                ret, th1 = cv2.threshold(mod_img, 120, 255, cv2.THRESH_BINARY)  # 二值化圖片
-                img = sharpen(mod_img, th1, 0.6)  # 圖片銳利化
-                cv2.imwrite('./result_dir/result_pic_yolo_crap_sha.jpg', img)
+                # # 做sha_crap前處理
+                # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                # mod_img = modify_contrast_and_brightness2(img, 0, 50)  # 調整圖片對比
+                # ret, th1 = cv2.threshold(mod_img, 120, 255, cv2.THRESH_BINARY)  # 二值化圖片
+                # img = sharpen(mod_img, th1, 0.6)  # 圖片銳利化
+                # cv2.imwrite('./result_dir/result_pic_yolo_crap_sha.jpg', img)
 
                 # 做retinex前處理)
                 # with open('config.json', 'r') as f:
@@ -591,13 +591,15 @@ def photo_obj_detection_HD(model_path,GPU_ratio=0.8,toCSV=True):
     print("yolo initial done")
 
     # 資料夾裡面每個檔案
-    pathlist = sorted(Path("./input_dir/HD_img/").glob('*'))  # 用哪個資料夾裡的檔案
+    pathlist = sorted(Path(r"./input_dir/HD_img/").glob('*'))  # 用哪個資料夾裡的檔案
     # pathlist = sorted(Path("./input_dir/Test_img/").glob('*'))  # 用哪個資料夾裡的檔案
+    print(pathlist)
 
     for path in pathlist:  # path每張檔案的路徑
 
 
         img_path = os.path.join('.', path)
+        print(img_path)
         # ----YOLO v4 variable init
         img = cv2.imread(img_path)
 
@@ -863,15 +865,15 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
             print(res)
 
         # ----YOLO v4 detection-----------------
-        yolo_img, pyz_decoded_str = yolo_v4.detection(img)
-        decode_result = pyz_decoded_str
-        # 印出Barcode/QRCode內容
-        print("Barcode/QRCode Part:\n\n")
-        if decode_result != []:
-            for res in decode_result:
-                print(res)
-        else:
-            print("Decode Fail")
+        # yolo_img, pyz_decoded_str = yolo_v4.detection(img)
+        # decode_result = pyz_decoded_str
+        # # 印出Barcode/QRCode內容
+        # print("Barcode/QRCode Part:\n\n")
+        # if decode_result != []:
+        #     for res in decode_result:
+        #         print(res)
+        # else:
+        #     print("Decode Fail")
 
         ####################################################
 
@@ -1514,8 +1516,8 @@ if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
     GPU_ratio = 0.8
-    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
-    # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     # real_time_obj_detection_chioce(model_path, GPU_ratio=GPU_ratio)
-    # photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
+    photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio,toCSV=False)
     # cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
