@@ -236,6 +236,10 @@ def compare(str1, str2):
     else:
         return False
 
+
+# API路徑(全域變數)
+Google_json_path="C:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
+
 def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
     #----var
     frame_count = 0
@@ -396,7 +400,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
 
                 # 設置API位置
                 import os
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = Google_json_path
                 image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
                 # EntityAnnotation的說明文件
@@ -616,7 +620,7 @@ def photo_obj_detection_HD(model_path,GPU_ratio=0.8,toCSV=True):
 
         # 設置API位置
         import os
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = Google_json_path
         image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
         # 設定辨識function
@@ -828,7 +832,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
 
         # 設置API位置
         import os
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = Google_json_path
         image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
         # 設定辨識function
@@ -1030,7 +1034,7 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6,toCSV=True):
 
     # 設置API位置
     import os
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] =Google_json_path
     top_image_path = r'./input_dir/cross_img_fold/cross_img_top.png'
     side_image_path = r'./input_dir/cross_img_fold/cross_img_side.png'
 
@@ -1389,7 +1393,7 @@ def real_time_obj_detection_chioce(model_path,GPU_ratio=0.8):
 
                 # 設置API位置
                 import os
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = Google_json_path
                 image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
                 # 設定辨識function
