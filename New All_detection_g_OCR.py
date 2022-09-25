@@ -816,6 +816,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
 
 
         img_path = os.path.join('.', path)
+        print(img_path)
         # ----YOLO v4 variable init
         img = cv2.imread(img_path)
 
@@ -1522,6 +1523,6 @@ if __name__ == "__main__":
     GPU_ratio = 0.8
     # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     # real_time_obj_detection_chioce(model_path, GPU_ratio=GPU_ratio)
-    # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
-    photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio,toCSV=False)
+    photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
+    # photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio,toCSV=False)
     # cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
