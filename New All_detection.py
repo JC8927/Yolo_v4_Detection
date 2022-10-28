@@ -10,7 +10,7 @@ from src.Feature_parse_tf import get_predict_result
 from utils import tools
 import csv
 from paddleocr import PaddleOCR,draw_ocr
-import pytesseract
+#import pytesseract
 import os
 from pathlib import Path
 from PIL import Image,ImageDraw
@@ -19,10 +19,10 @@ import matplotlib.image as mpimg
 import numpy as np
 import copy
 import re
-import xlwt
-from xlwt import Workbook
+#import xlwt
+#from xlwt import Workbook
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+#pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 #----tensorflow version check
 if tensorflow.__version__.startswith('1.'):
@@ -184,12 +184,12 @@ class Yolo_v4():
 
 
     def detection(self,img_bgr):
+        img_4d=img_bgr.copy()
         img_4d = cv2.resize(img_bgr,(self.width,self.height))
         img_4d = img_4d[:,:,::-1]
         img_4d = img_4d.astype(np.float32)
         img_4d /= 255 #255,123, 18
         img_4d = np.expand_dims(img_4d,axis=0)
-
         boxes, score, label = self.sess.run([self.pre_boxes, self.pre_score, self.pre_label],
                                             feed_dict={self.tf_input:img_4d})
         # test box
@@ -977,15 +977,15 @@ def photo_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
     AKOUSTIS = (' ', 'Company', 'Part#', 'LOT#', 'MFG#', 'DTE', 'QTY')
     Silicon = (' ', 'Company', 'Country', 'SUPPLIER', 'DATECODE', 'QTY', 'CODE', 'SEALDATE')
     # CSV
+    txt_path="./input_dir/ALL_company/"
+    txt_name=os.listdir(txt_path)
 
-
-
+    img_num=-1
     for path in pathlist:  # path每張檔案的路徑
-
+        img_num=img_num+1
         img_path = os.path.join('.', path)
         # ----YOLO v4 variable init
         img = cv2.imread(img_path)
-
         # ---paddleOCR detection-----------------
         ocr = PaddleOCR(lang='en')  # need to run only once to download and load model into memory
         result = ocr.ocr(img_path, cls=False)  # OCR
@@ -996,6 +996,12 @@ def photo_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
 
         # ----YOLO v4 detection-----------------
         yolo_img, pyz_decoded_str = yolo_v4.detection(img)
+        
+        cv2.namedWindow("pic",0)
+        #cv2.resizeWindow("pic",1600,900)
+        cv2.imshow("pic",yolo_img)
+        cv2.imwrite('./result_dir/new_save/'+txt_name[img_num], yolo_img)
+        #cv2.waitKey(0)
         decode_result = pyz_decoded_str
         # 印出Barcode/QRCode內容
         print("Barcode/QRCode Part:\n\n")
@@ -1290,8 +1296,8 @@ if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
     GPU_ratio = 0.8
-    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
-    # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
-    real_time_obj_detection_chioce(model_path,GPU_ratio=GPU_ratio)
+    #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
+    photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
+    #real_time_obj_detection_chioce(model_path,GPU_ratio=GPU_ratio)
     # photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio,toCSV=False)
     # cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
