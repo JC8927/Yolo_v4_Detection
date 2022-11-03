@@ -22,6 +22,8 @@ import copy
 import re
 import xlwt
 from xlwt import Workbook
+from dbr import *
+
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
@@ -34,6 +36,35 @@ else:
     tf.disable_v2_behavior()
     import tensorflow.compat.v1.gfile as gfile
 print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
+
+#----setup dbr environment
+# 建立BarcodeReader
+BarcodeReader.init_license("t0076oQAAADLDNLLexPCL5vfn2vtVNtjVvYQzSHAmkcuhnLZhwoyd50yzV5xlNT6PYgMhdBsXn72R4cNUcOLv82zt0jv+NFJb2RQn/4Yi6Q==")
+reader = BarcodeReader()
+
+# Barcode reader setting
+settings = reader.get_runtime_settings()
+settings.barcode_format_ids = EnumBarcodeFormat.BF_ALL
+settings.barcode_format_ids_2 = EnumBarcodeFormat_2.BF2_POSTALCODE | EnumBarcodeFormat_2.BF2_DOTCODE
+settings.excepted_barcodes_count = 35
+reader.update_runtime_settings(settings)
+
+def dbr_decode():
+    try:
+        text_results = reader.decode_file(r"C:\Users\shiii\Yolo_v4_Detection\result_dir\result_pic_orig.jpg")
+        if text_results != None:
+            for text_result in text_results:
+                #             print("Barcode Format : " + text_result.barcode_format_string)
+                print("Barcode Text : " + text_result.barcode_text)
+                if len(text_result.barcode_format_string) == 0:
+                    pass
+    #                 print("Barcode Format : " + text_result.barcode_format_string_2)
+    #         else:
+    #             print("Barcode Format : " + text_result.barcode_format_string)
+    #             print("Barcode Text : " + text_result.barcode_text)
+    except BarcodeReaderError as bre:
+        print(bre)
+
 
 def video_init(is_2_write=False,save_path=None):
     writer = None
@@ -554,6 +585,9 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                                             break
                         writer.writerow(List)  # 印出來
 
+                # dbr decode
+                dbr_decode()
+
                 # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
                 end = time.time()
 
@@ -777,8 +811,8 @@ def photo_obj_detection_HD(model_path,GPU_ratio=0.8,toCSV=True):
                                     break
                 writer.writerow(List)  # 印出來
 
-
-
+        # dbr decode
+        dbr_decode()
 
         end = time.time()
 
@@ -865,15 +899,15 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
             print(res)
 
         # ----YOLO v4 detection-----------------
-        # yolo_img, pyz_decoded_str = yolo_v4.detection(img)
-        # decode_result = pyz_decoded_str
-        # # 印出Barcode/QRCode內容
-        # print("Barcode/QRCode Part:\n\n")
-        # if decode_result != []:
-        #     for res in decode_result:
-        #         print(res)
-        # else:
-        #     print("Decode Fail")
+        yolo_img, pyz_decoded_str = yolo_v4.detection(img)
+        decode_result = pyz_decoded_str
+        # 印出Barcode/QRCode內容
+        print("Barcode/QRCode Part:\n\n")
+        if decode_result != []:
+            for res in decode_result:
+                print(res)
+        else:
+            print("Decode Fail")
 
         ####################################################
 
@@ -976,6 +1010,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
                 #######################################
                 overwrite[0] = 1
                 print(List)
+
                 if decode_result != []:
                     wrote = decode_result
                     for a in range(len(overwrite) - 2):
@@ -989,7 +1024,8 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
                                     break
                 writer.writerow(List)  # 印出來
 
-
+        # dbr decode
+        dbr_decode()
 
         end = time.time()
 
@@ -1023,8 +1059,6 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6,toCSV=True):
 
     # YOLO v4 detection(side)
     yolo_side_img, pyz_decoded_side_str = yolo_v4.detection(img_side)
-
-
 
     # googleOCR辨識
 
@@ -1202,6 +1236,10 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6,toCSV=True):
                                 wrote[res] = 'wrote'
                                 break
             writer.writerow(List)  # 印出來
+
+    # dbr decode
+    dbr_decode(img_top)
+    dbr_decode(img_side)
 
     #####################################################
     # ----release
@@ -1445,6 +1483,9 @@ def real_time_obj_detection_chioce(model_path,GPU_ratio=0.8):
                     print(decode)
                 decode_list = []
 
+                # dbr decode
+                dbr_decode()
+
 
                 #################tag查詢功能開始#################
                 data = []
@@ -1483,6 +1524,9 @@ def real_time_obj_detection_chioce(model_path,GPU_ratio=0.8):
                 print(List)
                 #################tag查詢功能結束#################
 
+
+
+
                 end = time.time()
 
                 # 用start - end算出程式運行時間，並且print出來
@@ -1516,8 +1560,10 @@ if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4_416.ckpt.meta"
     GPU_ratio = 0.8
-    # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     # real_time_obj_detection_chioce(model_path, GPU_ratio=GPU_ratio)
     # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
-    photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio,toCSV=False)
+    # photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio,toCSV=False)
     # cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+
+
