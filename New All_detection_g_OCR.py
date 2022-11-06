@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import math
 import cv2,time
 import numpy
@@ -23,9 +24,12 @@ import re
 import xlwt
 from xlwt import Workbook
 from dbr import *
+from google.cloud import vision
+import io
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
 
 #----tensorflow version check
 if tensorflow.__version__.startswith('1.'):
@@ -48,22 +52,6 @@ settings.barcode_format_ids = EnumBarcodeFormat.BF_ALL
 settings.barcode_format_ids_2 = EnumBarcodeFormat_2.BF2_POSTALCODE | EnumBarcodeFormat_2.BF2_DOTCODE
 settings.excepted_barcodes_count = 35
 reader.update_runtime_settings(settings)
-
-def dbr_decode():
-    try:
-        text_results = reader.decode_file(r"C:\Users\shiii\Yolo_v4_Detection\result_dir\result_pic_orig.jpg")
-        if text_results != None:
-            for text_result in text_results:
-                #             print("Barcode Format : " + text_result.barcode_format_string)
-                print("Barcode Text : " + text_result.barcode_text)
-                if len(text_result.barcode_format_string) == 0:
-                    pass
-    #                 print("Barcode Format : " + text_result.barcode_format_string_2)
-    #         else:
-    #             print("Barcode Format : " + text_result.barcode_format_string)
-    #             print("Barcode Text : " + text_result.barcode_text)
-    except BarcodeReaderError as bre:
-        print(bre)
 
 
 def video_init(is_2_write=False,save_path=None):
@@ -231,8 +219,51 @@ class Yolo_v4():
 
         return img_bgr,decoded_str
 
-#圖像前處理追加函式start#
+# 設定dbr decode function
+def dbr_decode():
+    try:
+        text_results = reader.decode_file(r"C:\Users\shiii\Yolo_v4_Detection\result_dir\result_pic_orig.jpg")
+        if text_results != None:
+            for text_result in text_results:
+                #             print("Barcode Format : " + text_result.barcode_format_string)
+                print("Barcode Text : " + text_result.barcode_text)
+                if len(text_result.barcode_format_string) == 0:
+                    pass
+    #                 print("Barcode Format : " + text_result.barcode_format_string_2)
+    #         else:
+    #             print("Barcode Format : " + text_result.barcode_format_string)
+    #             print("Barcode Text : " + text_result.barcode_text)
+    except BarcodeReaderError as bre:
+        print(bre)
 
+# 設定文字辨識function
+def google_detect_text(path):
+    """Detects text in the file."""
+    client = vision.ImageAnnotatorClient()
+
+    with io.open(path, 'rb') as image_file:
+        content = image_file.read()
+
+    image = vision.Image(content=content)
+
+    response = client.text_detection(image=image)
+    texts = response.text_annotations
+
+    print('Texts:')
+
+    # 建立result_list 儲存辨識結果
+    result_list = texts[0].description.split('\n')
+    # result_list = str(result_list).encode("UTF-8")
+    # result_list = result_list.decode("UTF-8")
+    if response.error.message:
+        raise Exception(
+            '{}\nFor more info on error messages, check: '
+            'https://cloud.google.com/apis/design/errors'.format(
+                response.error.message))
+    # 回傳辨識結果
+    return result_list
+
+# 圖像前處理追加函式start#
 def modify_contrast_and_brightness2(img, brightness=0 , contrast=100):
 
     B = brightness / 255.0
@@ -257,7 +288,8 @@ def sharpen(img,img_2,para_1):
     blur_img=cv2.addWeighted(img,para_1,img_2,1-para_1,0)
     return blur_img
 
-#圖像前處理追加函式end#
+# 圖像前處理追加函式end#
+
 def compare(str1, str2):
     tmp1 = str1.replace(" ", "")
     tmp2 = str2.replace(" ", "")
@@ -287,7 +319,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
 
         # 建立decode_list儲存解碼內容
         decode_result_path = './result_dir/decode_result_txt.txt'
-        fc = open(decode_result_path, 'w')
+        fc = open(decode_result_path, 'w',encoding='utf-8')
 
 
         if ret is True:
@@ -433,41 +465,16 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                 # EntityAnnotation的說明文件
                 # https: // cloud.google.com / python / docs / reference / vision / 2.2.0 / google.cloud.vision_v1.types.EntityAnnotation
 
-                # 設定辨識function
-                def google_detect_text(path):
-                    """Detects text in the file."""
-                    from google.cloud import vision
-                    import io
-                    client = vision.ImageAnnotatorClient()
-
-                    with io.open(path, 'rb') as image_file:
-                        content = image_file.read()
-
-                    image = vision.Image(content=content)
-
-                    response = client.text_detection(image=image)
-                    texts = response.text_annotations
-                    print('Texts:')
-
-                    # 建立result_list 儲存辨識結果
-                    result_list = texts[0].description.split('\n')
-
-                    if response.error.message:
-                        raise Exception(
-                            '{}\nFor more info on error messages, check: '
-                            'https://cloud.google.com/apis/design/errors'.format(
-                                response.error.message))
-                    # 回傳辨識結果
-                    return result_list
-
+                # 文字辨識
                 result = google_detect_text(image_path)
 
                 # 匯出辨識結果(txt)
                 result_path = './result_dir/result_txt.txt'
-                f = open(result_path, 'w')
-                fc = open(decode_result_path, 'w')
 
-                # 印出PaddleOCR結果
+                f = open(result_path, 'w',encoding='utf-8')
+                fc = open(decode_result_path, 'w',encoding='utf-8')
+
+                # 印出Google OCR結果
                 print("OCR Text Part:\n")
                 for res in result:
                     f.write(res + '\n')
@@ -653,33 +660,7 @@ def photo_obj_detection_HD(model_path,GPU_ratio=0.8,toCSV=True):
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
         image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
-        # 設定辨識function
-        def google_detect_text(path):
-            """Detects text in the file."""
-            from google.cloud import vision
-            import io
-            client = vision.ImageAnnotatorClient()
-
-            with io.open(path, 'rb') as image_file:
-                content = image_file.read()
-
-            image = vision.Image(content=content)
-
-            response = client.text_detection(image=image)
-            texts = response.text_annotations
-            print('Texts:')
-
-            # 建立result_list 儲存辨識結果
-            result_list = texts[0].description.split('\n')
-
-            if response.error.message:
-                raise Exception(
-                    '{}\nFor more info on error messages, check: '
-                    'https://cloud.google.com/apis/design/errors'.format(
-                        response.error.message))
-            # 回傳辨識結果
-            return result_list
-
+        # 文字辨識
         result = google_detect_text(img_path)
 
         print("Text Part:\n")
@@ -865,33 +846,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
         image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
-        # 設定辨識function
-        def google_detect_text(path):
-            """Detects text in the file."""
-            from google.cloud import vision
-            import io
-            client = vision.ImageAnnotatorClient()
-
-            with io.open(path, 'rb') as image_file:
-                content = image_file.read()
-
-            image = vision.Image(content=content)
-
-            response = client.text_detection(image=image)
-            texts = response.text_annotations
-            print('Texts:')
-
-            # 建立result_list 儲存辨識結果
-            result_list = texts[0].description.split('\n')
-
-            if response.error.message:
-                raise Exception(
-                    '{}\nFor more info on error messages, check: '
-                    'https://cloud.google.com/apis/design/errors'.format(
-                        response.error.message))
-            # 回傳辨識結果
-            return result_list
-
+        # 文字辨識
         result = google_detect_text(img_path)
 
         print("Text Part:\n")
@@ -1068,33 +1023,6 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6,toCSV=True):
     top_image_path = r'./input_dir/cross_img_fold/cross_img_top.png'
     side_image_path = r'./input_dir/cross_img_fold/cross_img_side.png'
 
-    # 設定辨識function
-    def google_detect_text(path):
-        """Detects text in the file."""
-        from google.cloud import vision
-        import io
-        client = vision.ImageAnnotatorClient()
-
-        with io.open(path, 'rb') as image_file:
-            content = image_file.read()
-
-        image = vision.Image(content=content)
-
-        response = client.text_detection(image=image)
-        texts = response.text_annotations
-        print('Texts:')
-
-        # 建立result_list 儲存辨識結果
-        result_list = texts[0].description.split('\n')
-
-        if response.error.message:
-            raise Exception(
-                '{}\nFor more info on error messages, check: '
-                'https://cloud.google.com/apis/design/errors'.format(
-                    response.error.message))
-        # 回傳辨識結果
-        return result_list
-
     top_result = google_detect_text(top_image_path)
     side_result = google_detect_text(side_image_path)
 
@@ -1112,8 +1040,8 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6,toCSV=True):
     # 匯出辨識結果(txt)
     ocr_result_path = './result_dir/result_txt.txt'
     decode_result_path = './result_dir/decode_result_txt.txt'
-    f = open(ocr_result_path, 'w')
-    fc = open(decode_result_path, 'w')
+    f = open(ocr_result_path, 'w',encoding='utf-8')
+    fc = open(decode_result_path, 'w',encoding='utf-8')
 
 
     # 印出result字元
@@ -1269,7 +1197,7 @@ def real_time_obj_detection_chioce(model_path,GPU_ratio=0.8):
         # 建立decode_list儲存解碼內容
 
         decode_result_path = './result_dir/decode_result_txt.txt'
-        fc = open(decode_result_path, 'w')
+        fc = open(decode_result_path, 'w',encoding='utf-8')
 
 
         if ret is True:
@@ -1430,42 +1358,13 @@ def real_time_obj_detection_chioce(model_path,GPU_ratio=0.8):
                 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
                 image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
-                # 設定辨識function
-                def google_detect_text(path):
-                    """Detects text in the file."""
-                    from google.cloud import vision
-                    import io
-                    client = vision.ImageAnnotatorClient()
-
-                    with io.open(path, 'rb') as image_file:
-                        content = image_file.read()
-
-                    image = vision.Image(content=content)
-
-                    response = client.text_detection(image=image)
-                    texts = response.text_annotations
-                    print('Texts:')
-
-                    # 建立result_list 儲存辨識結果
-                    result_list = texts[0].description.split('\n')
-
-                    if response.error.message:
-                        raise Exception(
-                            '{}\nFor more info on error messages, check: '
-                            'https://cloud.google.com/apis/design/errors'.format(
-                                response.error.message))
-                    # 回傳辨識結果
-                    return result_list
-
                 result = google_detect_text(img_path)
-
-
 
                 # 匯出辨識結果(txt)
                 result_path = './result_dir/result_txt.txt'
                 # decode_result_path = './result_dir/decode_result_txt.txt'
-                f = open(result_path, 'w')
-                # fc = open(decode_result_path, 'w')
+                f = open(result_path, 'w',encoding='utf-8')
+                # fc = open(decode_result_path, 'w',encoding='utf-8')
 
 
 
