@@ -3,7 +3,9 @@
 
 import os
 from os import path
+from pyexpat.errors import codes
 import time
+from unittest import result
 import cv2
 import random
 from xml.dom.minidom import parse
@@ -141,12 +143,12 @@ def draw_img(img, boxes, score, label, word_dict, color_table, ):
     h = img.shape[0]
     # font
     font = cv2.FONT_HERSHEY_SIMPLEX
-    decode_output = []
-
+    ori_decode_output = []
+    crop_decode_output=[]
     # 將每個box的位置資料存到yolo_box.txt中
     # 用crop_coordinates存放要剪掉的code座標
     crop_coordinates = []
-
+    img_decode=img.copy()#保存原始圖
     for i in range(len(boxes)):
         boxes[i][0] = constrait(boxes[i][0], 0, 1)
         boxes[i][1] = constrait(boxes[i][1], 0, 1)
@@ -164,6 +166,7 @@ def draw_img(img, boxes, score, label, word_dict, color_table, ):
 
         ###########################################################
         # 測試裁切圖片
+        #說明：對yolo_v4所偵測到的每個
         # padding設定(相對)
         # padding_X = int(0.2*(x_max-x_min))
         # padding_Y = int(0.1*(y_max-y_min))
@@ -185,8 +188,14 @@ def draw_img(img, boxes, score, label, word_dict, color_table, ):
             crop_X_max += padding_X
         crop_img = img[crop_Y_min:crop_Y_max, crop_X_min:crop_X_max]
 
-        # crop_img = img[y_min - padding_Y:y_max + padding_Y, x_min - padding_X:x_max  + padding_X]
-        # crop_img = img[y_min:y_max, x_min:x_max]
+
+        #用於檢查crop_img
+        #cv2.namedWindow("pic",0)
+        #cv2.resizeWindow("pic",crop_X_max-crop_X_min,crop_Y_max-crop_Y_min)
+        #cv2.imshow("pic",crop_img)
+        #cv2.imwrite('./result_dir/new_save/'+txt_name[img_num], yolo_img)
+        #cv2.waitKey(0)
+
         ##################-barcode圖像前處理function-################
         def barcode(gray):
             texts = pyzbar.decode(gray)
@@ -251,14 +260,16 @@ def draw_img(img, boxes, score, label, word_dict, color_table, ):
 
         ##########################-decode-#########################
         # 對barcode進行轉正處理
+        crop_img = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
+        codes = pyzbar.decode(crop_img)
         if curr_label == "barcode":
-            gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
-            sharpen_img = sharpen(gray, 20)  # sigma值設太大會導致偵數大幅下降
-            decoded_str = barcode(sharpen_img)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            #sharpen_img = sharpen(gray, 20)  # sigma值設太大會導致偵數大幅下降
+            #decoded_str = barcode(img)
         else:
-            gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
-            sharpen_img = sharpen(gray, 10)
-            decoded_str = pyzbar.decode(sharpen_img)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            #sharpen_img = sharpen(gray, 10)
+            #decoded_str = pyzbar.decode(img)
         ###########################################################
         # 直接覆寫前面的curr_color(從隨機變成固定)
         if curr_label == label[0]:
@@ -267,26 +278,52 @@ def draw_img(img, boxes, score, label, word_dict, color_table, ):
             curr_color = (215, 0, 0)  # QRcode 藍色
         ###########################################################
         # draw box
-        cv2.rectangle(img, (x_min, y_min), (x_max, y_max), curr_color)
+        #cv2.rectangle(img, (x_min, y_min), (x_max, y_max), curr_color)
 
         # 顯示padding範圍
         cv2.rectangle(img, (crop_X_min, crop_Y_min), (crop_X_max, crop_Y_max), (144, 112, 128))
 
         # draw font
+        draw_x_min=x_min
+        draw_y_min=y_min
+        for code in codes:
+            data=code.data.decode('utf-8')
+            print('數據:',data)
+            crop_decode_output.append(data)
+            cv2.putText(img, data, (draw_x_min, draw_y_min+ 50), font, 1, curr_color)
+            draw_y_min=draw_y_min+75
         if word_dict is not None:
             text_name = "{}".format(word_dict[curr_label])
-            cv2.putText(img, text_name, (x_min, y_min + 25), font, 1, curr_color)
+            #cv2.putText(img, text_name, (x_min, y_min + 25), font, 1, curr_color)
         if score is not None:
             text_score = "{:2d}%".format(int(score[i] * 100))
-            cv2.putText(img, text_score, (x_min, y_min), font, 1, curr_color)
-        if decoded_str != [] and decoded_str[0].data.decode("utf-8") != "X":
-            text_decoded_str = decoded_str[0].data.decode("utf-8")
-            # cv2.putText(img, text_decoded_str, (x_min, y_min+ 50), font, 1, curr_color)
-            cv2.putText(img, text_score + " " + text_decoded_str, (x_min, y_min), font, 1, curr_color)
-            decode_output.append(text_decoded_str)
-        else:
-            cv2.putText(img, text_score, (x_min, y_min), font, 1, curr_color)
-
+            #cv2.putText(img, text_score, (x_min, y_min), font, 1, curr_color)
+        # if decoded_str != [] and decoded_str[0].data.decode("utf-8") != "X":
+        #     text_decoded_str = decoded_str[0].data.decode("utf-8")
+        #     cv2.putText(img, text_decoded_str, (x_min, y_min+ 50), font, 1, curr_color)
+        #     cv2.putText(img, text_score + " " + text_decoded_str, (x_min, y_min), font, 1, curr_color)
+        #     decode_output.append(text_decoded_str)
+        # else:
+        #     cv2.putText(img, text_score, (x_min, y_min), font, 1, curr_color)
+    img_decode = cv2.cvtColor(img_decode, cv2.COLOR_BGR2GRAY)
+    codes = pyzbar.decode(img_decode)
+    result_decode_output=crop_decode_output.copy()
+    for code in codes:
+        data=code.data.decode('utf-8')
+        print('數據:',data)
+        ori_decode_output.append(data)
+        pts_rect=np.array(code.rect,np.int32)
+        draw_flag=True
+        #檢測是否有在crop_img中偵測到此barcode/qrcode
+        for i in range(len(crop_decode_output)):
+            if data==crop_decode_output[i]:
+                draw_flag=False
+                break
+        if draw_flag:
+            result_decode_output.append(data)
+            cv2.rectangle(img,(pts_rect[0],pts_rect[1]),(pts_rect[0]+pts_rect[2],pts_rect[1]+pts_rect[3]),(255,0,0))
+            cv2.putText(img,data,(pts_rect[0],pts_rect[1]),font,1,(0,0,205))
+        
     # 將每個box的位置資料存到yolo_box.txt中
     path = r'result_dir\yolo_box.txt'
     with open(path, 'w') as f:
@@ -300,7 +337,7 @@ def draw_img(img, boxes, score, label, word_dict, color_table, ):
             f.write(str(crop_coordinate[3]))
             f.write("\n")
 
-    return img, decode_output
+    return img, result_decode_output
 
 
 '''
