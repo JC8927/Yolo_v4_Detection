@@ -24,7 +24,6 @@ from ctypes import resize
 import xlwt
 from xlwt import Workbook
 from tensorflow import keras
-from keras_segmentation.models.unet import vgg_unet
 
 from IPython.display import Image
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
