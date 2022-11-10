@@ -3,7 +3,6 @@ import math
 import cv2,time
 import numpy
 import json
-
 import retinex
 from numpy import number
 import tensorflow
@@ -27,10 +26,8 @@ from dbr import *
 from google.cloud import vision
 import io
 
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-
+################################# 檢查GPU環境 #################################
 #----tensorflow version check
 if tensorflow.__version__.startswith('1.'):
     import tensorflow as tf
@@ -40,6 +37,15 @@ else:
     tf.disable_v2_behavior()
     import tensorflow.compat.v1.gfile as gfile
 print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
+
+################################# 設置套件環境 #################################
+# 設置pytesseract API位置
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+# 設置GOOGLE OCR API位置
+# 舊的 : os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-2-f83acae6f2c5.json"
 
 #----setup dbr environment
 # 建立BarcodeReader
@@ -53,6 +59,7 @@ settings.barcode_format_ids_2 = EnumBarcodeFormat_2.BF2_POSTALCODE | EnumBarcode
 settings.excepted_barcodes_count = 35
 reader.update_runtime_settings(settings)
 
+################################# define function #################################
 
 def video_init(is_2_write=False,save_path=None):
     writer = None
@@ -222,19 +229,17 @@ class Yolo_v4():
 # 設定dbr decode function
 def dbr_decode():
     try:
-        text_results = reader.decode_file(r"C:\Users\shiii\Yolo_v4_Detection\result_dir\result_pic_orig.jpg")
+        text_results = reader.decode_file(r".\result_dir\result_pic_orig.jpg")
+        # 用dbr_decode_res儲存decode結果
+        dbr_decode_res = []
         if text_results != None:
             for text_result in text_results:
-                #             print("Barcode Format : " + text_result.barcode_format_string)
-                print("Barcode Text : " + text_result.barcode_text)
-                if len(text_result.barcode_format_string) == 0:
-                    pass
-    #                 print("Barcode Format : " + text_result.barcode_format_string_2)
-    #         else:
-    #             print("Barcode Format : " + text_result.barcode_format_string)
-    #             print("Barcode Text : " + text_result.barcode_text)
+                dbr_decode_res.append(text_result.barcode_text)
+                # print("Barcode Text : " + text_result.barcode_text)
+        return dbr_decode_res
     except BarcodeReaderError as bre:
         print(bre)
+        return []
 
 # 設定文字辨識function
 def google_detect_text(path):
@@ -249,7 +254,7 @@ def google_detect_text(path):
     response = client.text_detection(image=image)
     texts = response.text_annotations
 
-    print('Texts:')
+    # print('Texts:')
 
     # 建立result_list 儲存辨識結果
     result_list = texts[0].description.split('\n')
@@ -319,14 +324,12 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
 
         # 建立decode_list儲存解碼內容
         decode_result_path = './result_dir/decode_result_txt.txt'
-        fc = open(decode_result_path, 'w',encoding='utf-8')
-
 
         if ret is True:
             #----YOLO v4 detection
             yolo_img,pyz_decoded_str = yolo_v4.detection(img)
 
-            # 在錄影的過程中儲存解碼內容
+            # 在錄影的過程中儲存解碼內容於decode_list
             decode_result = pyz_decoded_str
             if decode_result != []:
                 for res in decode_result:
@@ -347,11 +350,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
             cv2.putText(yolo_img, FPS, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3) #123, 255, 18
 
             #----image display
-            cv2.imshow("YOLO v4 by JohnnyAI", yolo_img)
-
-            # #----image writing
-            # if writer is not None:
-            #     writer.write(yolo_img)
+            cv2.imshow("Code Reader", yolo_img)
 
 
             # ----按下Q鍵拍下、儲存一張照片
@@ -371,7 +370,6 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
 
                 # 讀取拍攝好的照片(result_pic_orig.jpg)
                 img_path = './result_dir/result_pic_orig.jpg'  # 用這個路徑讀取最後拍下的照片
-                # ----YOLO v4 variable init
                 img = cv2.imread(img_path)
 
                 # # 做sha_crap前處理
@@ -451,15 +449,10 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                         img = cv2.rectangle(img, start_point, end_point, color, thickness)
                 # 儲存yolo_crop照片
                 cv2.imwrite('./result_dir/result_pic_yolo_crop.jpg', img)
-                print("***************************")
 
                 decode_result = pyz_decoded_str
 
                 # googleOCR辨識
-
-                # 設置API位置
-                import os
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
                 image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
                 # EntityAnnotation的說明文件
@@ -474,23 +467,34 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                 f = open(result_path, 'w',encoding='utf-8')
                 fc = open(decode_result_path, 'w',encoding='utf-8')
 
+                # dbr decode
+                dbr_decode_res = dbr_decode()
+
+
+
+                # 整合zbar與dbr decode的結果
+                for dbr_result in dbr_decode_res:
+                    # 將dbr decode
+                    if dbr_result not in set(decode_list):
+                        decode_list.append(dbr_result)
+
                 # 印出Google OCR結果
-                print("OCR Text Part:\n")
+                # print("OCR Text Part:\n")
                 for res in result:
                     f.write(res + '\n')
-                    print(res)
+                    # print(res)
 
                 # 印出Barcode/QRCode內容
-                print("Barcode/QRCode Part:\n")
+                # print("Barcode/QRCode Part:\n")
                 for decode in decode_list:
                     fc.write(decode+'\n')
-                    print(decode)
-                decode_list = []
+                    # print(decode)
+
 
                 # OCR轉CSV
                 if toCSV:
                     # 標頭資訊(重要項目)
-                    Header = (' ', 'PN', 'Date', 'QTY', 'LOT', 'COO')
+                    Header = [' ', 'PN', 'Date', 'QTY', 'LOT', 'COO']
 
                     # 設定資料IO路徑
                     result_path = './result_dir/real_time_CSV/real_time.csv'
@@ -506,7 +510,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                         #     PN, Date, QTY, LOT, COO = 1, 2, 3, 4, 5  # 設定哪一項放在第幾格
                         PN, Date, QTY, LOT, COO = 0, 1, 2, 3, 4  # 設定哪一項放在第幾格
 
-                        List = ['-', '-', '-', '-', '-']
+                        toCSV_list = ['-', '-', '-', '-', '-']
                         EID = 0  # 換行用
                         #     s = str(path)
                         #     List[0] = s.strip("/content/LABEL/")  # 第一格我放圖片名稱
@@ -519,9 +523,9 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                             # PN
                             if ('PN' in line2[0] or 'P/N' in line2[0]) and overwrite[PN] == 0:
                                 if len(line2[0]) > 1 and  len(line2)==2:
-                                    List[PN] = line2[1].lstrip(' ')
+                                    toCSV_list[PN] = line2[1].lstrip(' ')
                                 else:
-                                    List[PN] = line2[0][2:].lstrip(' ')
+                                    toCSV_list[PN] = line2[0][2:].lstrip(' ')
                                 overwrite[PN] = 1
                                 EID = 0
 
@@ -529,82 +533,99 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                             # Date
                             elif ('Date' in line2[0] or 'DATE' in line2[0]) and overwrite[Date] == 0:  # 那行有Date Date那格沒被填過(有些公司有Date code又有Date ，Date code要寫前面)
                                 if len(line2) > 1 and  len(line2)==2:
-                                    List[Date] = line2[1]  # 那行有被分割過(有冒號) 填第2個資料
+                                    toCSV_list[Date] = line2[1]  # 那行有被分割過(有冒號) 填第2個資料
                                 else:
-                                    List[Date] = line2[0][4:].lstrip(' ')
+                                    toCSV_list[Date] = line2[0][4:].lstrip(' ')
                                 overwrite[Date] = 1  # 填完了
                                 EID = 0  # 不用換行
 
                             # QTY
-                            elif ('Qty' in line2[0] or 'QTY'in line2[0] or 'quantity'in line2[0] or 'Quantity' in line2[0]) and overwrite[QTY] == 0:
+                            elif ('Qty' in line2[0] or r"Q'ty" in line2[0] or 'QTY'in line2[0] or 'quantity'in line2[0] or 'Quantity' in line2[0]) and overwrite[QTY] == 0:
                                 if len(line2) > 1 and  len(line2)==2:
-                                    List[QTY] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
+                                    toCSV_list[QTY] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
                                 else:
-                                    List[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
+                                    toCSV_list[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
                                 overwrite[QTY] = 1
                                 EID = 0
 
                             # LOT
                             elif ('LOT' in line2[0] or 'Lot' in line2[0]) and overwrite[LOT] == 0:
                                 if len(line2) > 1 and  len(line2)==2:
-                                    List[LOT] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
+                                    toCSV_list[LOT] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
                                 else:
-                                    List[LOT] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
+                                    toCSV_list[LOT] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
                                 overwrite[LOT] = 1
                                 EID = 0
 
                             # COO
                             elif ('COO' in line2[0] or 'Coo'in line2[0] or 'CoO'in line2[0] or 'Country' in line2[0]) and overwrite[COO] == 0:
                                 if len(line2) > 1 and  len(line2)==2:
-                                    List[COO] = line2[1].lstrip(' ')
+                                    toCSV_list[COO] = line2[1].lstrip(' ')
                                 else:
-                                    List[COO] = line2[0][3:].lstrip(' ')
+                                    toCSV_list[COO] = line2[0][3:].lstrip(' ')
                                 overwrite[COO] = 1
                                 EID = 0
                             elif ('C.O.O.' in line2[0] or 'C.o.o.' in line2[0]) and overwrite[COO] == 0:
                                 if len(line2) > 1 and  len(line2)==2:
-                                    List[COO] = line2[1].lstrip(' ')
+                                    toCSV_list[COO] = line2[1].lstrip(' ')
                                 else:
-                                    List[COO] = line2[0][6:].lstrip(' ')
+                                    toCSV_list[COO] = line2[0][6:].lstrip(' ')
                                 overwrite[COO] = 1
                                 EID = 0
                             elif ('MADE IN' in line2[0] or 'Made In' in line2[0]) and overwrite[COO] == 0:
                                 if len(line2) > 1 and  len(line2)==2:
-                                    List[COO] = line2[1].lstrip(' ')
+                                    toCSV_list[COO] = line2[1].lstrip(' ')
                                 else:
-                                    List[COO] = line2[0][7:].lstrip(' ')
+                                    toCSV_list[COO] = line2[0][7:].lstrip(' ')
                                 overwrite[COO] = 1
                                 EID = 0
 
                         #######################################
                         overwrite[0] = 1
-                        print(List)
+                        # print(toCSV_list)
                         if decode_result != []:
                             wrote = decode_result
                             for a in range(len(overwrite) - 2):
                                 if overwrite[a] == 0:
                                     for res in range(len(decode_result)):
                                         if wrote[res] != 'wrote' and decode_result[res] != '':
-                                            print(decode_result[res])
-                                            List[a] = decode_result[res]
+                                            # 金字塔式的印出新解到的碼
+                                            # print(decode_result[res])
+                                            toCSV_list[a] = decode_result[res]
                                             overwrite[a] = 1
                                             wrote[res] = 'wrote'
                                             break
-                        writer.writerow(List)  # 印出來
+                        writer.writerow(toCSV_list)  # 印出來
 
-                # dbr decode
-                dbr_decode()
+
+                # 輸出 OCR to CSV 結果
+                print("****** OCR to CSV 結果 *************************************")
+                print(Header)
+                print(toCSV_list)
+                print()
+
+                # 輸出 zbar + dbr 解碼結果
+                print("***** zbar + dbr 解碼結果 ***********************************")
+                print(decode_list)
+                print()
 
                 # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
                 end = time.time()
 
                 # 用start - end算出程式運行時間，並且print出來
                 exe_time = end - start
-                print("************************")
+                print("************************************************************")
                 print(f"執行時間: {exe_time:.4}")
-                print("************************")
+                print()
+                print()
+                print()
                 #####################################################
+
+
+
+
                 # ----release
+                decode_list = []
                 f.close()
                 fc.close()
 
@@ -619,9 +640,6 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
     yolo_v4.sess.close()
     cap.release()
 
-
-    # if writer is not None:
-    #     writer.release()
     cv2.destroyAllWindows()
 
 def photo_obj_detection_HD(model_path,GPU_ratio=0.8,toCSV=True):
@@ -654,10 +672,6 @@ def photo_obj_detection_HD(model_path,GPU_ratio=0.8,toCSV=True):
         # img = sharpen(mod_img, th1, 0.6)  # 疊加二值化圖片與調完對比之圖片 0.6為兩圖佔比
 
         # googleOCR辨識
-
-        # 設置API位置
-        import os
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
         image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
         # 文字辨識
@@ -840,10 +854,6 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
         # img = sharpen(mod_img, th1, 0.6)  # 疊加二值化圖片與調完對比之圖片 0.6為兩圖佔比
 
         # googleOCR辨識
-
-        # 設置API位置
-        import os
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
         image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
         # 文字辨識
@@ -864,13 +874,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
         else:
             print("Decode Fail")
 
-        ####################################################
 
-        # 儲存照片路徑
-        # result_img_path = "./result_dir/"+str(path)+".jpg"
-        # # 儲存yolo辨識照片
-        # cv2.imwrite(result_img_path, yolo_img)
-        #####################################################
         # OCR轉CSV
         if toCSV:
             # 標頭資訊(重要項目)
@@ -980,7 +984,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
                 writer.writerow(List)  # 印出來
 
         # dbr decode
-        dbr_decode()
+        dbr_decode_res = dbr_decode()
 
         end = time.time()
 
@@ -1016,10 +1020,6 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6,toCSV=True):
     yolo_side_img, pyz_decoded_side_str = yolo_v4.detection(img_side)
 
     # googleOCR辨識
-
-    # 設置API位置
-    import os
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
     top_image_path = r'./input_dir/cross_img_fold/cross_img_top.png'
     side_image_path = r'./input_dir/cross_img_fold/cross_img_side.png'
 
@@ -1225,7 +1225,7 @@ def real_time_obj_detection_chioce(model_path,GPU_ratio=0.8):
             cv2.putText(yolo_img, FPS, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3) #123, 255, 18
 
             #----image display
-            cv2.imshow("YOLO v4 by JohnnyAI", yolo_img)
+            cv2.imshow("Code Reader", yolo_img)
 
             # #----image writing
             # if writer is not None:
@@ -1352,10 +1352,6 @@ def real_time_obj_detection_chioce(model_path,GPU_ratio=0.8):
                 print("***************************")
 
                 # googleOCR辨識
-
-                # 設置API位置
-                import os
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
                 image_path = r'./result_dir/result_pic_yolo_crop.jpg'
 
                 result = google_detect_text(img_path)
