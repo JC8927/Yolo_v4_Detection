@@ -16,7 +16,60 @@ import pyzbar.pyzbar as pyzbar
 '''
 ##################### about file #####################
 '''
+##################-barcode圖像前處理function-################
+def barcode(gray):
+    texts = pyzbar.decode(gray)
+    if texts == []:
+        angle = barcode_angle(gray)
+        if angle < -45:
+            angle = -90 - angle
+        texts = bar(gray, angle)
+    if texts == []:
+        gray = np.uint8(np.clip((1.1 * gray + 10), 0, 255))
+        angle = barcode_angle(gray)
+        if angle < -45:
+            angle = -90 - angle
+        texts = bar(gray, angle)
+    return texts
 
+def bar(image, angle):
+    gray = image
+    bar = rotate_bound(gray, 0 - angle)
+    roi = cv2.cvtColor(bar, cv2.COLOR_BGR2RGB)
+    texts = pyzbar.decode(roi)
+    return texts
+
+def barcode_angle(image):
+    gray = image
+    ret, binary = cv2.threshold(gray, 220, 255, cv2.THRESH_BINARY_INV)
+    kernel = np.ones((8, 8), np.uint8)
+    dilation = cv2.dilate(binary, kernel, iterations=1)
+    erosion = cv2.erode(dilation, kernel, iterations=1)
+    erosion = cv2.erode(erosion, kernel, iterations=1)
+    erosion = cv2.erode(erosion, kernel, iterations=1)
+
+    contours, hierarchy = cv2.findContours(
+        erosion, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    if len(contours) == 0:
+        rect = [0, 0, 0]
+    else:
+        rect = cv2.minAreaRect(contours[0])
+    return rect[2]
+
+def rotate_bound(image, angle):
+    (h, w) = image.shape[:2]
+    (cX, cY) = (w // 2, h // 2)
+
+    M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
+    cos = np.abs(M[0, 0])
+    sin = np.abs(M[0, 1])
+    nW = int((h * sin) + (w * cos))
+    nH = int((h * cos) + (w * sin))
+
+    M[0, 2] += (nW / 2) - cX
+    M[1, 2] += (nH / 2) - cY
+
+    return cv2.warpAffine(image, M, (nW, nH))
 
 # read file content
 def read_file(file_name):
@@ -196,60 +249,7 @@ def draw_img(img, boxes, score, label, word_dict, color_table, ):
         #cv2.imwrite('./result_dir/new_save/'+txt_name[img_num], yolo_img)
         #cv2.waitKey(0)
 
-        ##################-barcode圖像前處理function-################
-        def barcode(gray):
-            texts = pyzbar.decode(gray)
-            if texts == []:
-                angle = barcode_angle(gray)
-                if angle < -45:
-                    angle = -90 - angle
-                texts = bar(gray, angle)
-            if texts == []:
-                gray = np.uint8(np.clip((1.1 * gray + 10), 0, 255))
-                angle = barcode_angle(gray)
-                if angle < -45:
-                    angle = -90 - angle
-                texts = bar(gray, angle)
-            return texts
 
-        def bar(image, angle):
-            gray = image
-            bar = rotate_bound(gray, 0 - angle)
-            roi = cv2.cvtColor(bar, cv2.COLOR_BGR2RGB)
-            texts = pyzbar.decode(roi)
-            return texts
-
-        def barcode_angle(image):
-            gray = image
-            ret, binary = cv2.threshold(gray, 220, 255, cv2.THRESH_BINARY_INV)
-            kernel = np.ones((8, 8), np.uint8)
-            dilation = cv2.dilate(binary, kernel, iterations=1)
-            erosion = cv2.erode(dilation, kernel, iterations=1)
-            erosion = cv2.erode(erosion, kernel, iterations=1)
-            erosion = cv2.erode(erosion, kernel, iterations=1)
-
-            contours, hierarchy = cv2.findContours(
-                erosion, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            if len(contours) == 0:
-                rect = [0, 0, 0]
-            else:
-                rect = cv2.minAreaRect(contours[0])
-            return rect[2]
-
-        def rotate_bound(image, angle):
-            (h, w) = image.shape[:2]
-            (cX, cY) = (w // 2, h // 2)
-
-            M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
-            cos = np.abs(M[0, 0])
-            sin = np.abs(M[0, 1])
-            nW = int((h * sin) + (w * cos))
-            nH = int((h * cos) + (w * sin))
-
-            M[0, 2] += (nW / 2) - cX
-            M[1, 2] += (nH / 2) - cY
-
-            return cv2.warpAffine(image, M, (nW, nH))
 
         # 圖片銳化函式
         def sharpen(img, sigma=50):
@@ -288,7 +288,7 @@ def draw_img(img, boxes, score, label, word_dict, color_table, ):
         draw_y_min=y_min
         for code in codes:
             data=code.data.decode('utf-8')
-            print('數據:',data)
+            # print('數據:',data)
             crop_decode_output.append(data)
             cv2.putText(img, data, (draw_x_min, draw_y_min+ 50), font, 1, curr_color)
             draw_y_min=draw_y_min+75
@@ -310,7 +310,7 @@ def draw_img(img, boxes, score, label, word_dict, color_table, ):
     result_decode_output=crop_decode_output.copy()
     for code in codes:
         data=code.data.decode('utf-8')
-        print('數據:',data)
+        # print('數據:',data)
         ori_decode_output.append(data)
         pts_rect=np.array(code.rect,np.int32)
         draw_flag=True
