@@ -1,2 +1,2 @@
-model_checkpoint_path: "yolov4-obj_best_416.ckpt"
-all_model_checkpoint_paths: "yolov4-obj_best_416.ckpt"
+model_checkpoint_path: "yolov4-obj_2000_416.ckpt"
+all_model_checkpoint_paths: "yolov4-obj_2000_416.ckpt"
