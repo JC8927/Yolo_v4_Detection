@@ -12,8 +12,7 @@ else:
 print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
 
 def convert_weight(model_path,output_dir,size):
-    # save_path = os.path.join(output_dir,'yolov4-QB_test_5_' + str(size) + '.ckpt')
-    save_path = os.path.join(output_dir, 'yolov4-obj_2000_' + str(size) + '.ckpt')
+    save_path = os.path.join(output_dir, 'yolov4-obj_best_' + str(size) + '.ckpt')
     class_num = 2 #1, 80, 36
     yolo = YOLO()
     with tf.Session() as sess:
@@ -34,7 +33,7 @@ if __name__ == "__main__":
 
     # model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4.weights"
 
-    model_path = r"C:\Users\shiii\YOLO_v4-master\yolov4-obj_2000.weights"
+    model_path = r"C:\Users\shiii\Yolo_v4_Detection\yolov4-obj_best.weights"
     output_dir = ""
     size = 416 #416, 608
     convert_weight(model_path, output_dir, size=size)

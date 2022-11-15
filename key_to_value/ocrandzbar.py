@@ -121,7 +121,7 @@ def sharpen(img,img_2,para_1):
 
 ocr = PaddleOCR(use_angle_cls=True, lang='en',use_gpu=False) # need to run only once to download and load model into memory
 
-result_img_path="./type_1/"#選擇ocr處理之圖片
+result_img_path="./type_3/"#選擇ocr處理之圖片
 img_name=os.listdir(result_img_path)
 img_num=len(img_name)
 
