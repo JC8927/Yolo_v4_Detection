@@ -45,7 +45,7 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 
 # 設置GOOGLE OCR API位置
 # 舊的 : os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-2-f83acae6f2c5.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-3-fb9484b15a36.json"
 
 #----setup dbr environment
 # 建立BarcodeReader
