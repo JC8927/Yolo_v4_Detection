@@ -1,30 +1,14 @@
-QTY: 1
-OSKY66523-11EK1
-DATE 2021/04/01 M
-CUSTOMER
-VENDOR:
-益登科技股份有限公司
-EVALUATION BOARD/KITO000802700
-PCS
-________________
-AL
-www.w
-QTY:1
-P/O: SAMPLE-20210401
+iriun.com
+Customer Name: Qualcomm Global Trading
+(V) Foundry Name: SAMSUNG (1L) Fabrication Site : T1
+(1J) LPN: UN144356508DBLOOK7D (30P) MCN: CD90-PP133-18D
+(1T) Lot Code: F0395A
+(Q) Quantity: 4233
 www.
-P/N: EVALUATION BOARD/KIT
-VENDOR P/N: SKY66315-11EK1
-LOT NO:80274ES6
-A
-PCS
-OSKY66315-11EK1
-C
-DATE:2021/04/01 P Mau MA
-DATE CODE:NA
-==
-8101296376
-A2021021760207
-(ROHS)
-DATE CODE:NA
-8101296376
-A2021021760222
+(20L) Bump Site ATT1
+(10D) Date Code: 221
+Wafer count: 12
+Amkor Lot BP1520229
+Country of Fabrication: KR
+Country of Assembly: TW
+Dry-pack expiration : 04-JAN-2023

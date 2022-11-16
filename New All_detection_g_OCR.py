@@ -25,7 +25,9 @@ from xlwt import Workbook
 from dbr import *
 from google.cloud import vision
 import io
-
+from tkinter import ttk
+from tkinter import *
+from tkinter import messagebox
 
 ################################# 檢查GPU環境 #################################
 #----tensorflow version check
@@ -44,8 +46,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # 設置GOOGLE OCR API位置
-# 舊的 : os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "D:/1Google_OCR/alien-proton-363201-9c70ccc912f8.json"
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-3-fb9484b15a36.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-4-555d8b63842d.json"
 
 #----setup dbr environment
 # 建立BarcodeReader
@@ -58,6 +59,9 @@ settings.barcode_format_ids = EnumBarcodeFormat.BF_ALL
 settings.barcode_format_ids_2 = EnumBarcodeFormat_2.BF2_POSTALCODE | EnumBarcodeFormat_2.BF2_DOTCODE
 settings.excepted_barcodes_count = 35
 reader.update_runtime_settings(settings)
+
+# 設定ui主畫面
+window = Tk()
 
 ################################# define function #################################
 
@@ -303,6 +307,86 @@ def compare(str1, str2):
         return True
     else:
         return False
+
+def ui_generate(window, key_value_list=[], exe_time=0, decode_res_list=[]):
+    """
+    input:
+        key_value_list: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
+        exe_time: 主程式執行時間。
+        decode_res_list: 一維碼、二維碼執行結果。
+    output:
+        show UI
+    """
+
+    # 如果要印出decode結果，則加長UI
+    if decode_res_list:
+        height = 650
+    else:
+        height = 350
+    screenwidth = window.winfo_screenwidth()  # 屏幕宽度
+    screenheight = window.winfo_screenheight()  # 屏幕高度
+    width = 1000
+    x = int((screenwidth - width) / 2)
+    y = int((screenheight - height) / 2)
+    window.geometry(f'{width}x{height}+{x}+{y}')  # 大小以及位置
+
+    window.title("Code Reader")
+    window.minsize(width=200, height=300)
+    window.config(padx=20, pady=20)
+    window.resizable(width=False, height=False)
+    # window.config(bg="white")
+
+    # 設定ui名稱
+    label = Label(text="Code Reader", font=("Arial", 25, "bold"), padx=5, pady=5, fg="black")
+    label.pack()
+
+    # 如果有輸入key_value_list則印出
+    # 設定"OCR to CSV 結果"描述
+    label = Label(text="OCR to CSV 結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
+    label.pack()
+
+    # 設定key&value對應表格
+    tree = ttk.Treeview(window, height=1, padding=(10, 5, 20, 20), columns=('PN', 'Date', 'QTY', 'LOT', 'COO'))
+    tree.column("PN", width=200)
+    tree.column("Date", width=100)
+    tree.column("QTY", width=100)
+    tree.column("LOT", width=200)
+    tree.column("COO", width=100)
+
+    tree.heading("PN", text="PN")
+    tree.heading("Date", text="Date")
+    tree.heading("QTY", text="QTY")
+    tree.heading("LOT", text="LOT")
+    tree.heading("COO", text="COO")
+
+    # 匯入key&value辨識結果
+    tree.insert("", 0, text="0", values=key_value_list)  # 插入資料，
+    tree.pack()
+
+    # 如果有輸入decode_res_list則印出decode結果
+    if decode_res_list:
+        # 設定"解碼結果"描述
+        label = Label(text="解碼結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
+        label.pack()
+
+        # 設定解碼結果表格
+        text = Text(height=15, width=30, font=("Arial", 14), fg="black", state=NORMAL)
+
+        # 轉換解碼結果(List2Str)
+        decode_res = ''
+        for res in decode_res_list:
+            decode_res += str(res)
+            decode_res += '\n'
+        # 匯入解碼結果表格
+        text.insert(END, decode_res)
+
+        text.pack()
+
+    # 顯示辨識時間
+    label = Label(text=f"執行時間: {exe_time:.2} (s)", font=("Arial", 14, "bold"), padx=5, pady=25, fg="black")
+    label.pack()
+    #     window.after(3000, window.destroy)
+    window.mainloop()
 
 def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
     #----var
@@ -619,8 +703,10 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                 print()
                 print()
                 print()
-                #####################################################
 
+                #####################################################
+                # 印出UI
+                ui_generate(window,toCSV_list, exe_time, decode_list)
 
 
 
