@@ -60,8 +60,7 @@ settings.barcode_format_ids_2 = EnumBarcodeFormat_2.BF2_POSTALCODE | EnumBarcode
 settings.excepted_barcodes_count = 35
 reader.update_runtime_settings(settings)
 
-# 設定ui主畫面
-window = Tk()
+
 
 ################################# define function #################################
 
@@ -308,7 +307,7 @@ def compare(str1, str2):
     else:
         return False
 
-def ui_generate(window, key_value_list=[], exe_time=0, decode_res_list=[]):
+def ui_generate(window = Tk(), key_value_list=[], exe_time=0, decode_res_list=[]):
     """
     input:
         key_value_list: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
@@ -496,41 +495,41 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
                 # )
 
 
-                # 將yolo找到的條碼部分遮蔽
-                # 讀取yolo找到的座標
-                with open(r'.\result_dir\yolo_box.txt', 'r') as f:
-                    coordinates = f.read()
-                spilt_coordinates = coordinates.split("\n")
-
-                # 遮蔽各個code的區域
-                for coordinate in spilt_coordinates:
-                    if len(coordinate.split(",")) > 1:
-                        x_min = int(coordinate.split(",")[0])
-                        x_max = int(coordinate.split(",")[1])
-                        y_min = int(coordinate.split(",")[2])
-                        y_max = int(coordinate.split(",")[3])
-
-                        padding_x = 5
-                        padding_y = 8
-
-                        # x padding
-                        if (x_max - x_min > 2 * padding_x):
-                            x_max -= padding_x
-                            x_min += padding_x
-
-                        # y padding
-                        if (y_max - y_min > 2 * padding_y):
-                            y_max -= padding_y
-                            y_min += padding_y
-
-                        # 轉換x_min,x_max,y_min,y_max為x_left,y_top,w,h
-                        start_point = (x_min, y_min)
-                        end_point = (x_max, y_max)
-                        color = (0, 0, 0)
-                        # Thickness of -1 will fill the entire shape
-                        thickness = -1
-
-                        img = cv2.rectangle(img, start_point, end_point, color, thickness)
+                # # 將yolo找到的條碼部分遮蔽
+                # # 讀取yolo找到的座標
+                # with open(r'.\result_dir\yolo_box.txt', 'r') as f:
+                #     coordinates = f.read()
+                # spilt_coordinates = coordinates.split("\n")
+                #
+                # # 遮蔽各個code的區域
+                # for coordinate in spilt_coordinates:
+                #     if len(coordinate.split(",")) > 1:
+                #         x_min = int(coordinate.split(",")[0])
+                #         x_max = int(coordinate.split(",")[1])
+                #         y_min = int(coordinate.split(",")[2])
+                #         y_max = int(coordinate.split(",")[3])
+                #
+                #         padding_x = 5
+                #         padding_y = 8
+                #
+                #         # x padding
+                #         if (x_max - x_min > 2 * padding_x):
+                #             x_max -= padding_x
+                #             x_min += padding_x
+                #
+                #         # y padding
+                #         if (y_max - y_min > 2 * padding_y):
+                #             y_max -= padding_y
+                #             y_min += padding_y
+                #
+                #         # 轉換x_min,x_max,y_min,y_max為x_left,y_top,w,h
+                #         start_point = (x_min, y_min)
+                #         end_point = (x_max, y_max)
+                #         color = (0, 0, 0)
+                #         # Thickness of -1 will fill the entire shape
+                #         thickness = -1
+                #
+                #         img = cv2.rectangle(img, start_point, end_point, color, thickness)
                 # 儲存yolo_crop照片
                 cv2.imwrite('./result_dir/result_pic_yolo_crop.jpg', img)
 
@@ -706,6 +705,8 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True):
 
                 #####################################################
                 # 印出UI
+                # 設定ui主畫面
+                window = Tk()
                 ui_generate(window,toCSV_list, exe_time, decode_list)
 
 
@@ -1089,15 +1090,193 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True):
     cv2.destroyAllWindows()
     print("done")
 
+def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True):
+
+    # ----YOLO v4 init
+    global os
+    yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
+    print("yolo initial done")
+
+    # 資料夾裡面每個檔案
+    # pathlist = sorted(Path("./input_dir/HD_img/").glob('*'))  # 用哪個資料夾裡的檔案
+    pathlist = sorted(Path(r"../我的雲端硬碟/code_reader_photo_detect").glob('*'))  # 用哪個資料夾裡的檔案
+
+    for path in pathlist:  # path每張檔案的路徑
+
+
+        img_path = os.path.join('.', path)
+        print(img_path)
+        # ----YOLO v4 variable init
+        img = cv2.imread(img_path)
+
+        # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
+        start = time.time()
+
+        # 做sha_crap前處理
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # mod_img = modify_contrast_and_brightness2(img, 0, 50)  # 調整圖片對比
+        # ret, th1 = cv2.threshold(mod_img, 120, 255, cv2.THRESH_BINARY)  # 二值化圖片
+        # img = sharpen(mod_img, th1, 0.6)  # 疊加二值化圖片與調完對比之圖片 0.6為兩圖佔比
+
+        # googleOCR辨識
+        image_path = r'./result_dir/result_pic_yolo_crop.jpg'
+
+        # 文字辨識
+        result = google_detect_text(img_path)
+
+        print("Text Part:\n")
+        for res in result:
+            print(res)
+
+        # ----YOLO v4 detection-----------------
+        yolo_img, pyz_decoded_str = yolo_v4.detection(img)
+        decode_result = pyz_decoded_str
+        # 印出Barcode/QRCode內容
+        print("Barcode/QRCode Part:\n\n")
+        if decode_result != []:
+            for res in decode_result:
+                print(res)
+        else:
+            print("Decode Fail")
+
+
+        # OCR轉CSV
+        if toCSV:
+            # 標頭資訊(重要項目)
+            Header = (' ', 'PN', 'Date', 'QTY', 'LOT', 'COO')
+
+            # 設定資料IO路徑
+            result_path = './result_dir/real_time_CSV/real_time.csv'
+
+            # 檢查是否存在各公司資料夾，不存在的話就創立一個新的(包含標頭)
+            if not os.path.isfile(result_path):
+                with open(result_path, 'a', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(Header)  # 列出重要項目
+
+            with open(result_path, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                #     PN, Date, QTY, LOT, COO = 1, 2, 3, 4, 5  # 設定哪一項放在第幾格
+                PN, Date, QTY, LOT, COO = 0, 1, 2, 3, 4  # 設定哪一項放在第幾格
+
+                List = ['-', '-', '-', '-', '-']
+                EID = 0  # 換行用
+                #     s = str(path)
+                #     List[0] = s.strip("/content/LABEL/")  # 第一格我放圖片名稱
+                overwrite = [0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
+                for line in result:
+                    line2 = line
+                    line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+
+                    # PN
+                    if ('PN' in line2[0] or 'P/N' in line2[0]) and overwrite[PN] == 0:
+                        if len(line2[0]) > 1 and len(line2) == 2:
+                            List[PN] = line2[1].lstrip(' ')
+                        else:
+                            List[PN] = line2[0][2:].lstrip(' ')
+                        overwrite[PN] = 1
+                        EID = 0
+
+
+                    # Date
+                    elif ('Date' in line2[0] or 'DATE' in line2[0]) and overwrite[
+                        Date] == 0:  # 那行有Date Date那格沒被填過(有些公司有Date code又有Date ，Date code要寫前面)
+                        if len(line2) > 1 and len(line2) == 2:
+                            List[Date] = line2[1]  # 那行有被分割過(有冒號) 填第2個資料
+                        else:
+                            List[Date] = line2[0][4:].lstrip(' ')
+                        overwrite[Date] = 1  # 填完了
+                        EID = 0  # 不用換行
+
+                    # QTY
+                    elif ('Qty' in line2[0] or 'QTY' in line2[0] or 'quantity' in line2[0] or 'Quantity' in line2[
+                        0]) and overwrite[QTY] == 0:
+                        if len(line2) > 1 and len(line2) == 2:
+                            List[QTY] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
+                        else:
+                            List[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
+                        overwrite[QTY] = 1
+                        EID = 0
+
+                    # LOT
+                    elif ('LOT' in line2[0] or 'Lot' in line2[0]) and overwrite[LOT] == 0:
+                        if len(line2) > 1 and len(line2) == 2:
+                            List[LOT] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
+                        else:
+                            List[LOT] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
+                        overwrite[LOT] = 1
+                        EID = 0
+
+                    # COO
+                    elif ('COO' in line2[0] or 'Coo' in line2[0] or 'CoO' in line2[0] or 'Country' in line2[0]) and \
+                            overwrite[COO] == 0:
+                        if len(line2) > 1 and len(line2) == 2:
+                            List[COO] = line2[1].lstrip(' ')
+                        else:
+                            List[COO] = line2[0][3:].lstrip(' ')
+                        overwrite[COO] = 1
+                        EID = 0
+                    elif ('C.O.O.' in line2[0] or 'C.o.o.' in line2[0]) and overwrite[COO] == 0:
+                        if len(line2) > 1 and len(line2) == 2:
+                            List[COO] = line2[1].lstrip(' ')
+                        else:
+                            List[COO] = line2[0][6:].lstrip(' ')
+                        overwrite[COO] = 1
+                        EID = 0
+                    elif ('MADE IN' in line2[0] or 'Made In' in line2[0]) and overwrite[COO] == 0:
+                        if len(line2) > 1 and len(line2) == 2:
+                            List[COO] = line2[1].lstrip(' ')
+                        else:
+                            List[COO] = line2[0][7:].lstrip(' ')
+                        overwrite[COO] = 1
+                        EID = 0
+
+                #######################################
+                overwrite[0] = 1
+                print(List)
+
+                if decode_result != []:
+                    wrote = decode_result
+                    for a in range(len(overwrite) - 2):
+                        if overwrite[a] == 0:
+                            for res in range(len(decode_result)):
+                                if wrote[res] != 'wrote' and decode_result[res] != '':
+                                    print(decode_result[res])
+                                    List[a] = decode_result[res]
+                                    overwrite[a] = 1
+                                    wrote[res] = 'wrote'
+                                    break
+                writer.writerow(List)  # 印出來
+
+        # dbr decode
+        dbr_decode_res = dbr_decode()
+
+        end = time.time()
+
+        # 用start - end算出程式運行時間，並且print出來
+        exe_time = end - start
+        print("************************")
+        print(f"執行時間: {exe_time:.4}")
+        print("************************")
+
+
+    #####################################################
+    # ----release
+    # f.close()
+    # fc.close()
+    # yolo_v4.sess.close()
+    cv2.destroyAllWindows()
+    print("done")
+
 def cross_photo_obj_detection(model_path, GPU_ratio=0.6,toCSV=True):
     # ----YOLO v4 init
     yolo_v4 = Yolo_v4(model_path, GPU_ratio=GPU_ratio)
 
     # 讀取top照片
-    img_top = cv2.imread('./input_dir/cross_img_fold/cross_img_top.png')
+    img_top = cv2.imread('./input_dir/cross_img_fold/cross_img_top.jpg')
 
     # 讀取side照片
-    img_side = cv2.imread('./input_dir/cross_img_fold/cross_img_side.png')
+    img_side = cv2.imread('./input_dir/cross_img_fold/cross_img_side.jpg')
 
     # YOLO v4 detection(TOP)
     yolo_top_img, pyz_decoded_top_str = yolo_v4.detection(img_top)
@@ -1133,14 +1312,14 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6,toCSV=True):
     # 印出result字元
     print("Text Part:\n")
     for res in result:
-        f.write(res + '\n')
+        # f.write(res + '\n')
         print(res)
 
     # 印出Barcode/QRCode內容
     print("Barcode/QRCode Part:\n\n")
     if decode_result != []:
         for res in decode_result:
-            fc.write(res + '\n')
+            # fc.write(res + '\n')
             print(res)
     else:
         print("Decode Fail")
@@ -1546,5 +1725,7 @@ if __name__ == "__main__":
     # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=False)
     # photo_obj_detection_HD(model_path,GPU_ratio=GPU_ratio,toCSV=False)
     # cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    # photo_obj_detection_cloud(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+
 
 
