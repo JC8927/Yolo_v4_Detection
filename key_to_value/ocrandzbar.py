@@ -34,14 +34,14 @@ def sharpen(img,img_2,para_1):
     blur_img=cv2.addWeighted(img,para_1,img_2,1-para_1,0)
     return blur_img
 
-mask_img_path="./mask_img/"#mask圖片
-ori_img_path="./single_ori_img/"#原始圖片
-result_img_path="./result_img/"
-ocr_img_path="./ocr_img/"
-noresize_ocr_img_path="./noresize_ocr_img/"
+# mask_img_path="./mask_img/"#mask圖片
+# ori_img_path="./single_ori_img/"#原始圖片
+# result_img_path="./result_img/"
+# ocr_img_path="./ocr_img/"
+# noresize_ocr_img_path="./noresize_ocr_img/"
 
-img_name=os.listdir(mask_img_path)
-img_num=len(img_name)
+# img_name=os.listdir(mask_img_path)
+# img_num=len(img_name)
 
 # #以mask圖片做裁剪圖片
 # for j in range(img_num):
