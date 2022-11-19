@@ -373,6 +373,113 @@ def ui_generate(window = Tk(), key_value_list=[], exe_time=0, decode_res_list=[]
     #     window.after(3000, window.destroy)
     window.mainloop()
 
+def toCSV_processing(ocr_result,decode_result):
+
+    # 標頭資訊(重要項目)
+    Header = [' ', 'PN', 'Date', 'QTY', 'LOT', 'COO']
+
+    # 設定資料IO路徑
+    result_path = './result_dir/real_time_CSV/real_time.csv'
+
+    # 檢查是否存在各公司資料夾，不存在的話就創立一個新的(包含標頭)
+    if not os.path.isfile(result_path):
+        with open(result_path, 'a', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(Header)  # 列出重要項目
+
+    with open(result_path, 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        #     PN, Date, QTY, LOT, COO = 1, 2, 3, 4, 5  # 設定哪一項放在第幾格
+        PN, Date, QTY, LOT, COO = 0, 1, 2, 3, 4  # 設定哪一項放在第幾格
+
+        toCSV_list = ['-', '-', '-', '-', '-']
+        EID = 0  # 換行用
+        #     s = str(path)
+        #     List[0] = s.strip("/content/LABEL/")  # 第一格我放圖片名稱
+        overwrite = [0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
+        for line in ocr_result:
+            line2 = line
+            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
+
+
+            # PN
+            if ('PN' in line2[0] or 'P/N' in line2[0]) and overwrite[PN] == 0:
+                if len(line2[0]) > 1 and  len(line2)==2:
+                    toCSV_list[PN] = line2[1].lstrip(' ')
+                else:
+                    toCSV_list[PN] = line2[0][2:].lstrip(' ')
+                overwrite[PN] = 1
+                EID = 0
+
+
+            # Date
+            elif ('Date' in line2[0] or 'DATE' in line2[0]) and overwrite[Date] == 0:  # 那行有Date Date那格沒被填過(有些公司有Date code又有Date ，Date code要寫前面)
+                if len(line2) > 1 and  len(line2)==2:
+                    toCSV_list[Date] = line2[1]  # 那行有被分割過(有冒號) 填第2個資料
+                else:
+                    toCSV_list[Date] = line2[0][4:].lstrip(' ')
+                overwrite[Date] = 1  # 填完了
+                EID = 0  # 不用換行
+
+            # QTY
+            elif ('Qty' in line2[0] or r"Q'ty" in line2[0] or 'QTY'in line2[0] or 'quantity'in line2[0] or 'Quantity' in line2[0]) and overwrite[QTY] == 0:
+                if len(line2) > 1 and  len(line2)==2:
+                    toCSV_list[QTY] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
+                else:
+                    toCSV_list[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
+                overwrite[QTY] = 1
+                EID = 0
+
+            # LOT
+            elif ('LOT' in line2[0] or 'Lot' in line2[0]) and overwrite[LOT] == 0:
+                if len(line2) > 1 and  len(line2)==2:
+                    toCSV_list[LOT] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
+                else:
+                    toCSV_list[LOT] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
+                overwrite[LOT] = 1
+                EID = 0
+
+            # COO
+            elif ('COO' in line2[0] or 'Coo'in line2[0] or 'CoO'in line2[0] or 'Country' in line2[0]) and overwrite[COO] == 0:
+                if len(line2) > 1 and  len(line2)==2:
+                    toCSV_list[COO] = line2[1].lstrip(' ')
+                else:
+                    toCSV_list[COO] = line2[0][3:].lstrip(' ')
+                overwrite[COO] = 1
+                EID = 0
+            elif ('C.O.O.' in line2[0] or 'C.o.o.' in line2[0]) and overwrite[COO] == 0:
+                if len(line2) > 1 and  len(line2)==2:
+                    toCSV_list[COO] = line2[1].lstrip(' ')
+                else:
+                    toCSV_list[COO] = line2[0][6:].lstrip(' ')
+                overwrite[COO] = 1
+                EID = 0
+            elif ('MADE IN' in line2[0] or 'Made In' in line2[0]) and overwrite[COO] == 0:
+                if len(line2) > 1 and  len(line2)==2:
+                    toCSV_list[COO] = line2[1].lstrip(' ')
+                else:
+                    toCSV_list[COO] = line2[0][7:].lstrip(' ')
+                overwrite[COO] = 1
+                EID = 0
+
+        #######################################
+        overwrite[0] = 1
+        # print(toCSV_list)
+        if decode_result != []:
+            wrote = decode_result
+            for a in range(len(overwrite) - 2):
+                if overwrite[a] == 0:
+                    for res in range(len(decode_result)):
+                        if wrote[res] != 'wrote' and decode_result[res] != '':
+                            # 金字塔式的印出新解到的碼
+                            # print(decode_result[res])
+                            toCSV_list[a] = decode_result[res]
+                            overwrite[a] = 1
+                            wrote[res] = 'wrote'
+                            break
+        writer.writerow(toCSV_list)  # 印出來
+    return toCSV_list
+
 ################################### 圖像前處理函式 ###################################
 
 def modify_contrast_and_brightness2(img, brightness=0 , contrast=100):
@@ -520,48 +627,10 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 if retinex:
                     img = retinex_processing(img)
 
-                # # 將yolo找到的條碼部分遮蔽
-                # # 讀取yolo找到的座標
-                # with open(r'.\result_dir\yolo_box.txt', 'r') as f:
-                #     coordinates = f.read()
-                # spilt_coordinates = coordinates.split("\n")
-                #
-                # # 遮蔽各個code的區域
-                # for coordinate in spilt_coordinates:
-                #     if len(coordinate.split(",")) > 1:
-                #         x_min = int(coordinate.split(",")[0])
-                #         x_max = int(coordinate.split(",")[1])
-                #         y_min = int(coordinate.split(",")[2])
-                #         y_max = int(coordinate.split(",")[3])
-                #
-                #         padding_x = 5
-                #         padding_y = 8
-                #
-                #         # x padding
-                #         if (x_max - x_min > 2 * padding_x):
-                #             x_max -= padding_x
-                #             x_min += padding_x
-                #
-                #         # y padding
-                #         if (y_max - y_min > 2 * padding_y):
-                #             y_max -= padding_y
-                #             y_min += padding_y
-                #
-                #         # 轉換x_min,x_max,y_min,y_max為x_left,y_top,w,h
-                #         start_point = (x_min, y_min)
-                #         end_point = (x_max, y_max)
-                #         color = (0, 0, 0)
-                #         # Thickness of -1 will fill the entire shape
-                #         thickness = -1
-                #
-                #         img = cv2.rectangle(img, start_point, end_point, color, thickness)
-                # 儲存yolo_crop照片
-                cv2.imwrite('./result_dir/result_pic_yolo_crop.jpg', img)
-
                 decode_result = pyz_decoded_str
 
                 # googleOCR辨識
-                image_path = r'./result_dir/result_pic_yolo_crop.jpg'
+                image_path = r'./result_dir/result_pic_orig.jpg'
 
                 # EntityAnnotation的說明文件
                 # https: // cloud.google.com / python / docs / reference / vision / 2.2.0 / google.cloud.vision_v1.types.EntityAnnotation
@@ -596,122 +665,15 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                     fc.write(decode+'\n')
                     # print(decode)
 
-
                 # OCR轉CSV
                 if toCSV:
-                    # 標頭資訊(重要項目)
-                    Header = [' ', 'PN', 'Date', 'QTY', 'LOT', 'COO']
-
-                    # 設定資料IO路徑
-                    result_path = './result_dir/real_time_CSV/real_time.csv'
-
-                    # 檢查是否存在各公司資料夾，不存在的話就創立一個新的(包含標頭)
-                    if not os.path.isfile(result_path):
-                        with open(result_path, 'a', newline='') as csvfile:
-                            writer = csv.writer(csvfile)
-                            writer.writerow(Header)  # 列出重要項目
-
-                    with open(result_path, 'a', newline='') as csvfile:
-                        writer = csv.writer(csvfile)
-                        #     PN, Date, QTY, LOT, COO = 1, 2, 3, 4, 5  # 設定哪一項放在第幾格
-                        PN, Date, QTY, LOT, COO = 0, 1, 2, 3, 4  # 設定哪一項放在第幾格
-
-                        toCSV_list = ['-', '-', '-', '-', '-']
-                        EID = 0  # 換行用
-                        #     s = str(path)
-                        #     List[0] = s.strip("/content/LABEL/")  # 第一格我放圖片名稱
-                        overwrite = [0, 0, 0, 0, 0]  # 看要輸入的格子裡面是不是已經有資料時用
-                        for line in ocr_result:
-                            line2 = line
-                            line2 = line2.split(':')  # line[1][0]是偵測到整行的 line2有用冒號分割
-
-
-                            # PN
-                            if ('PN' in line2[0] or 'P/N' in line2[0]) and overwrite[PN] == 0:
-                                if len(line2[0]) > 1 and  len(line2)==2:
-                                    toCSV_list[PN] = line2[1].lstrip(' ')
-                                else:
-                                    toCSV_list[PN] = line2[0][2:].lstrip(' ')
-                                overwrite[PN] = 1
-                                EID = 0
-
-
-                            # Date
-                            elif ('Date' in line2[0] or 'DATE' in line2[0]) and overwrite[Date] == 0:  # 那行有Date Date那格沒被填過(有些公司有Date code又有Date ，Date code要寫前面)
-                                if len(line2) > 1 and  len(line2)==2:
-                                    toCSV_list[Date] = line2[1]  # 那行有被分割過(有冒號) 填第2個資料
-                                else:
-                                    toCSV_list[Date] = line2[0][4:].lstrip(' ')
-                                overwrite[Date] = 1  # 填完了
-                                EID = 0  # 不用換行
-
-                            # QTY
-                            elif ('Qty' in line2[0] or r"Q'ty" in line2[0] or 'QTY'in line2[0] or 'quantity'in line2[0] or 'Quantity' in line2[0]) and overwrite[QTY] == 0:
-                                if len(line2) > 1 and  len(line2)==2:
-                                    toCSV_list[QTY] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
-                                else:
-                                    toCSV_list[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
-                                overwrite[QTY] = 1
-                                EID = 0
-
-                            # LOT
-                            elif ('LOT' in line2[0] or 'Lot' in line2[0]) and overwrite[LOT] == 0:
-                                if len(line2) > 1 and  len(line2)==2:
-                                    toCSV_list[LOT] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
-                                else:
-                                    toCSV_list[LOT] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
-                                overwrite[LOT] = 1
-                                EID = 0
-
-                            # COO
-                            elif ('COO' in line2[0] or 'Coo'in line2[0] or 'CoO'in line2[0] or 'Country' in line2[0]) and overwrite[COO] == 0:
-                                if len(line2) > 1 and  len(line2)==2:
-                                    toCSV_list[COO] = line2[1].lstrip(' ')
-                                else:
-                                    toCSV_list[COO] = line2[0][3:].lstrip(' ')
-                                overwrite[COO] = 1
-                                EID = 0
-                            elif ('C.O.O.' in line2[0] or 'C.o.o.' in line2[0]) and overwrite[COO] == 0:
-                                if len(line2) > 1 and  len(line2)==2:
-                                    toCSV_list[COO] = line2[1].lstrip(' ')
-                                else:
-                                    toCSV_list[COO] = line2[0][6:].lstrip(' ')
-                                overwrite[COO] = 1
-                                EID = 0
-                            elif ('MADE IN' in line2[0] or 'Made In' in line2[0]) and overwrite[COO] == 0:
-                                if len(line2) > 1 and  len(line2)==2:
-                                    toCSV_list[COO] = line2[1].lstrip(' ')
-                                else:
-                                    toCSV_list[COO] = line2[0][7:].lstrip(' ')
-                                overwrite[COO] = 1
-                                EID = 0
-
-                        #######################################
-                        overwrite[0] = 1
-                        # print(toCSV_list)
-
-
-                        if decode_result != []:
-                            wrote = decode_result
-                            for a in range(len(overwrite) - 2):
-                                if overwrite[a] == 0:
-                                    for res in range(len(decode_result)):
-                                        if wrote[res] != 'wrote' and decode_result[res] != '':
-                                            # 金字塔式的印出新解到的碼
-                                            # print(decode_result[res])
-                                            toCSV_list[a] = decode_result[res]
-                                            overwrite[a] = 1
-                                            wrote[res] = 'wrote'
-                                            break
-                        writer.writerow(toCSV_list)  # 印出來
+                    toCSV_list = toCSV_processing(ocr_result,decode_result)
 
                 # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
                 end = time.time()
 
                 # 用start - end算出程式運行時間，並且print出來
                 exe_time = end - start
-
-
 
                 #####################################################
                 # 印出UI
