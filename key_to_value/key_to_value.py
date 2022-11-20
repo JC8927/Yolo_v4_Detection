@@ -74,7 +74,7 @@ def search_col_data_idx(idx,number,imformation_list):
             while(imformation_list[next_idx]['x']<imformation_list[idx]['x']) and next_idx < (len(imformation_list)-1):
                 next_idx=next_idx+1
             if next_flag:
-                possible_col_data_idx_list.append(next_idx)
+                possible_col_data_idx_list.append(next_idx-idx)
                 next_idx=next_idx+1
             if next_idx>(len(imformation_list)-1):
                 next_flag=False
@@ -89,14 +89,14 @@ def search_col_data_idx(idx,number,imformation_list):
                 pre_idx=pre_idx+1
                 break
             if pre_flag:
-                possible_col_data_idx_list.append(pre_idx)
+                possible_col_data_idx_list.append(pre_idx-idx)
                 pre_idx=pre_idx-1
         
         if next_flag==False and pre_flag == False:
             break
 
     return possible_col_data_idx_list 
-def compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list,idx):
+def compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list,idx,idx_col_data):
     for i,col_data in enumerate(col_data_list):
         data=col_name+":"+col_data
         if config==None:
@@ -110,7 +110,7 @@ def compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list
                     if col_data.isdigit():
                         text_type='int'
                 print(text_type)
-                config_diction={'col':col_name,'text_length':text_len,'text_type':text_type,'col_name_idx':idx,'col_data_idx':col_data_idx_list[i],'col_data_idx_list':col_data_idx_list}
+                config_diction={'col':col_name,'text_length':text_len,'text_type':text_type,'col_name_idx':idx,'col_data_idx':col_data_idx_list[i],'col_data_idx_list':col_data_idx_list,'col_name_text':idx_col_data}
                 config=config_diction
                 config_list.append(config_diction)
                 break
@@ -235,15 +235,15 @@ def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
             col_data_idx_list=search_col_data_idx(idx,20,imformation_list)
             col_data_list=[]
             for data_idx in col_data_idx_list:
-                col_data=imformation_list[data_idx]['text']
+                col_data=imformation_list[data_idx+idx]['text']
                 col_data_list.append(col_data)
 
             #測試審核機制
             #config應針對不同選項有所調整 另外一個程式
-            col_data,i=compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list,idx)
+            col_data,i=compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list,idx,idx_col_data)
 
             print("欄位資料:"+col_name+":"+col_data)
-            print("欄位idx:"+str(col_data_idx_list[i]))
+            print("欄位idx:"+str(col_data_idx_list[i]+idx))
             diction={col_name:col_data,"location":col_data_idx_list[i]}
             result_list.append(diction)
     with open(os.path.join(config_path, "config.json"), "w") as f:
@@ -312,33 +312,64 @@ def normal_compare(imformation_list,config)-> Union[List[dict],List[dict]]:
     #         result_dict[col_list_name].append(i)#紀錄在information list的位置
     
     #確認目前col_name是否正確
-    def check_col_name(now_col_name,now_imformation,record_dict) -> bool:
+    def check_col_name(now_col_name,now_idx,record_dict,record_col_name,imformation_list) -> bool:
+        #確認 now_idx 所對應的information是否為對應的 col_name
 
-        now_imformation_text=now_imformation['text']
-        for col_name in record_dict[now_col_name]:
-            if now_imformation_text == col_name:
-                return True
+        max_num=5 #設定查找範圍
+        num=0
+        for i in range(now_idx,len(imformation_list)):
+            if num<max_num:
+                num=num+1
+            else:
+                break
+            now_imformation_text = imformation_list[i]['text']
+            if record_col_name == now_imformation_text:
+                return True,i
+            for col_name in record_dict[now_col_name]:
+                #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
+                if now_imformation_text == col_name:
+                    return True,i
+        num=0
+        for i in range(now_idx,0,-1):
+            if num<max_num:
+                num=num+1
+            else:
+                break
+            now_imformation_text = imformation_list[i]['text']
+            if record_col_name == now_imformation_text:
+                return True,i
+            for col_name in record_dict[now_col_name]:
+                #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
+                if now_imformation_text == col_name:
+                    return True,i
 
+        return False,i
+
+        
+    
     for saved_config in config_list:
         now_col_name = saved_config['col']
         now_idx = saved_config['col_name_idx']
         now_data_idx=saved_config['col_data_idx']
         now_data_idx_list=saved_config['col_data_idx_list']
-        now_imformation=imformation_list[now_idx]
-        col_name_flag = check_col_name(now_col_name,now_imformation,record_dict)
+        record_col_name = saved_config['col_name_text']
+        col_name_flag,now_idx = check_col_name(now_col_name,now_idx,record_dict,record_col_name,imformation_list)
         
-        if col_name_flag == False:
-            print("請確認config是否正確")
+        if col_name_flag == False:# 如為True 代表 一模一樣
+
+            #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
+            print("請問config是否正確")
             continue
         #確認col_name正確 找出可能的col_data
+
         col_data_list=[]
         for data_idx in now_data_idx_list:
-            col_data=imformation_list[data_idx]['text']
+            col_data=imformation_list[now_idx+data_idx]['text']
             col_data_list.append(col_data)
 
-        col_data,i = compare_col_data(col_data_list,now_col_name,config_list,saved_config,now_data_idx_list,now_idx)
+        col_data,i = compare_col_data(col_data_list,now_col_name,config_list,saved_config,now_data_idx_list,now_idx,record_col_name)
         col_y=imformation_list[i]['y']            
-        print("欄位資料:"+str(now_col_name)+str(col_data))
+        print("欄位資料:"+str(now_col_name)+":"+str(col_data))
         #print("欄位y位置:"+str(col_y))
         diction={now_col_name:col_data,"location":col_y}
         result_list.append(diction)
