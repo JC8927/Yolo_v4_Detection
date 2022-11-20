@@ -6,20 +6,22 @@ import json
 import retinex
 import tensorflow
 import csv
-import pytesseract
+#import pytesseract
 import numpy as np
 import io
 import os
+from key_to_value import ocr_result
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import copy
 import re
-import xlwt
+#import xlwt
 import pyzbar.pyzbar as pyzbar
 from src.YOLO import YOLO
 from src.Feature_parse_tf import get_predict_result
 from utils import tools
+from key_to_value import key_to_value
 from pathlib import Path
 from dbr import *
 from google.cloud import vision
@@ -28,7 +30,7 @@ from tkinter import *
 from tkinter import messagebox
 from numpy import number
 from PIL import Image,ImageDraw
-from xlwt import Workbook
+#from xlwt import Workbook
 from paddleocr import PaddleOCR,draw_ocr
 
 ################################# 檢查GPU環境 #################################
@@ -45,8 +47,8 @@ print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
 ################################# 設置套件環境 #################################
 
 # 設置pytesseract API位置
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+#os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+#pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # 設置GOOGLE OCR API位置
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-4-555d8b63842d.json"
@@ -246,28 +248,77 @@ def dbr_decode(image_path):
 def google_detect_text(path):
     """Detects text in the file."""
     client = vision.ImageAnnotatorClient()
-
+    #用於分割的標點符號
+    split_mark_list=["(",")",":"]
     with io.open(path, 'rb') as image_file:
         content = image_file.read()
 
     image = vision.Image(content=content)
-
     response = client.text_detection(image=image)
-    texts = response.text_annotations
+    document=response.full_text_annotation
 
-    # print('Texts:')
+    para_result_list=[]
+    word_result_list=[]
+    for page in document.pages:
+        for block in page.blocks:
+            for paragraph in block.paragraphs:
+                #整理paragraph level imformation
+                cur_para_result_list=[]
+                cur_para_loc_list=[]
+                cur_para_text=" "
+                #抓paragraph level bounding box
+                cur_para_loc=paragraph.bounding_box.vertices
+                for loc in cur_para_loc:
+                    loc_list=[loc.x,loc.y]
+                    cur_para_loc_list.append(loc_list)
 
-    # 建立result_list 儲存辨識結果
-    result_list = texts[0].description.split('\n')
-    # result_list = str(result_list).encode("UTF-8")
-    # result_list = result_list.decode("UTF-8")
+                for word in paragraph.words:
+                    #整理word level imformation
+                    cur_word_result_list=[]
+                    cur_word_loc_list=[]
+                    cur_word_text=""
+
+                    #抓word level bounding box
+                    cur_word_loc=word.bounding_box.vertices
+                    for loc in cur_word_loc:
+                        loc_list=[loc.x,loc.y]
+                        cur_word_loc_list.append(loc_list)
+
+                    mark_flag=False
+                    for symbol in word.symbols:
+                        for mark in split_mark_list:
+                            if symbol.text==mark:
+                                mark_flag=True
+                                break
+                        cur_word_text=cur_word_text+symbol.text
+                                        
+                    if mark_flag:
+                        cur_para_text=cur_para_text+" "
+                        continue
+                    if cur_word_text.isalnum() and cur_para_text[-1].isalnum():
+                        cur_para_text=cur_para_text+" "+cur_word_text
+                    else:
+                        cur_para_text=cur_para_text+cur_word_text
+                    cur_word_text=[cur_word_text,1]
+                    cur_word_result_list.append(cur_word_loc_list)
+                    cur_word_result_list.append(cur_word_text)
+                    word_result_list.append(cur_word_result_list)
+
+                print(cur_para_text.strip(" "))
+                cur_para_text=[cur_para_text.strip(" "),1]
+                cur_para_result_list.append(cur_para_loc_list)
+                cur_para_result_list.append(cur_para_text)
+                para_result_list.append(cur_para_result_list)
     if response.error.message:
         raise Exception(
             '{}\nFor more info on error messages, check: '
             'https://cloud.google.com/apis/design/errors'.format(
                 response.error.message))
     # 回傳辨識結果
-    return result_list
+    return para_result_list,word_result_list
+
+
+
 
 def compare(str1, str2):
     tmp1 = str1.replace(" ", "")
@@ -278,18 +329,30 @@ def compare(str1, str2):
     else:
         return False
 
-def ui_generate(key_value_list=[], exe_time=0, decode_res_list=[]):
+def ui_generate(key_value_dict=[], exe_time=0, decode_res_list=[]):
     """
     input:
-        key_value_list: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
+        key_value_dict: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
         exe_time: 主程式執行時間。
         decode_res_list: 一維碼、二維碼執行結果。
     output:
         show UI
     """
+    col_name_list=['PN', 'DATE', 'QTY', 'LOT', 'COO']
+    key_value_list=[]
+    for col in col_name_list:
+        exist_flag=False
+        for diction in key_value_dict:
+            for key in diction.keys():
+                if key==col:
+                    exist_flag=True
+                    key_value_list.append(diction.get(key))
+        if exist_flag==False:
+            key_value_list.append('')
+
     # 輸出 OCR to CSV 結果
     print("****** OCR to CSV 結果 *************************************")
-    print([' ', 'PN', 'Date', 'QTY', 'LOT', 'COO'])
+    print([' ', 'PN', 'DATE', 'QTY', 'LOT', 'COO'])
     print(key_value_list)
     print()
 
@@ -484,7 +547,7 @@ def modify_contrast_and_brightness2(img, brightness=0 , contrast=100):
 
 def img_resize(img):
     height,width=img.shape[0],img.shape[1]
-    renew_length=1280#自定義最長邊愈拉長至多長
+    renew_length=900#自定義最長邊愈拉長至多長
     if width/height>=1:#(width>height) 拉長width至愈調整尺寸
         img_new=cv2.resize(img,(renew_length,int(height*renew_length/width)))
     else:#(height>width) 拉長height至愈調整尺寸
@@ -622,13 +685,14 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
                 # googleOCR辨識
                 image_path = r'./result_dir/result_pic_processing.jpg'
-                ocr_result = google_detect_text(image_path)
+                para_ocr_result,word_ocr_result = google_detect_text(image_path)
 
                 # 輸出googleOCR辨識結果
                 result_path = './result_dir/result_txt.txt'
 
                 f = open(result_path, 'w',encoding='utf-8')
                 fc = open(decode_result_path, 'w',encoding='utf-8')
+                result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
                 # 讀取zbar解碼結果
                 decode_result = pyz_decoded_str
@@ -643,8 +707,9 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
                 # 印出Google OCR結果
                 # print("OCR Text Part:\n")
-                for res in ocr_result:
-                    f.write(res + '\n')
+                ocr_text=[]
+                for res in para_ocr_result:
+                    ocr_text.append(res[1][0])
                     # print(res)
 
                 # 印出Barcode/QRCode內容
@@ -654,8 +719,8 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                     # print(decode)
 
                 # OCR轉CSV
-                if toCSV:
-                    toCSV_list = toCSV_processing(ocr_result)
+                # if toCSV:
+                #     toCSV_list = toCSV_processing(ocr_result)
 
                 # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
                 end = time.time()
@@ -666,7 +731,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 #####################################################
                 # 印出UI
                 # 設定ui主畫面
-                ui_generate(toCSV_list, exe_time, decode_list)
+                ui_generate(result_list, exe_time, decode_list)
 
                 # ----release
                 decode_list = []
@@ -693,7 +758,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
     print("yolo initial done")
 
     # 資料夾裡面每個檔案
-    pathlist = sorted(Path("./input_dir/Test_img/").glob('*'))  # 用哪個資料夾裡的檔案
+    pathlist = sorted(Path("./input_dir/type_1/").glob('*'))  # 用哪個資料夾裡的檔案
 
     for path in pathlist:  # path: 每張檔案的路徑
         # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
@@ -716,7 +781,8 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         # googleOCR辨識
         image_path = r'./result_dir/result_pic_processing.jpg'
-        ocr_result = google_detect_text(image_path)
+        print("目前照片:"+str(img_path))
+        para_ocr_result,word_ocr_result = google_detect_text(image_path)
 
         # 輸出googleOCR辨識結果
         result_path = './result_dir/result_txt.txt'
@@ -724,6 +790,21 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         f = open(result_path, 'w', encoding='utf-8')
         fc = open(decode_result_path, 'w', encoding='utf-8')
+
+        imformation_list=key_to_value.data_preprocess(para_ocr_result)
+        config=None
+        image_path="./config/"
+        config_path="./config/config.json"
+        if os.path.isfile(config_path):
+            with open(config_path) as f:
+                config=json.load(f)['config']
+        if config==None:
+            result_list,match_text_list=key_to_value.first_compare(imformation_list,image_path)
+        else:
+            result_list,match_text_list=key_to_value.normal_compare(imformation_list,config)
+        
+        #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
+
 
         # 讀取zbar解碼結果
         decode_list = []
@@ -737,8 +818,10 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         # 印出Google OCR結果
         # print("OCR Text Part:\n")
-        for res in ocr_result:
-            f.write(res + '\n')
+        ocr_text=[]
+        for res in para_ocr_result:
+            ocr_text.append(res[1][0])
+            # f.write(res[1][0] + '\n')
             # print(res)
 
         # 印出Barcode/QRCode內容
@@ -749,7 +832,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         # OCR轉CSV
         if toCSV:
-            toCSV_list = toCSV_processing(ocr_result)
+            toCSV_list = toCSV_processing(ocr_text)
             print(f"toCSV_list{toCSV_list}")
 
         # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
@@ -760,7 +843,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         #####################################################
         # 印出UI
-        ui_generate(toCSV_list, exe_time, decode_list)
+        ui_generate(result_list, exe_time, decode_list)
 
         # ----release
         decode_list = []
@@ -963,9 +1046,9 @@ if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     GPU_ratio = 0.8
     # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
-    # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
-    # photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
-    cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    #photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
+    #cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
 
 
 
