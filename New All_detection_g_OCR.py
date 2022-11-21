@@ -237,9 +237,17 @@ def dbr_decode(image_path):
         # 用dbr_decode_res儲存decode結果
         dbr_decode_res = []
         if text_results != None:
+
             for text_result in text_results:
-                dbr_decode_res.append(text_result.barcode_text)
+                barcode_text = text_result.barcode_text
+                barcode_location = text_result.localization_result.localization_points
+                location_mid_x=int((barcode_location[0][0]+barcode_location[1][0])/2) #找出方框x中點
+                location_mid_y=int((barcode_location[1][1]+barcode_location[2][1])/2) #找出方框y中點
+                diction={'text':barcode_text,'bounding_poly':barcode_location,'x':location_mid_x,'y':location_mid_y}
+                dbr_decode_res.append(diction)
                 # print("Barcode Text : " + text_result.barcode_text)
+        dbr_decode_res=sorted(dbr_decode_res,key=lambda d:d['y'])#由y軸座標排序
+        
         return dbr_decode_res
     except BarcodeReaderError as bre:
         print(bre)
@@ -329,7 +337,7 @@ def compare(str1, str2):
     else:
         return False
 
-def ui_generate(key_value_dict=[], exe_time=0, decode_res_list=[]):
+def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
     """
     input:
         key_value_dict: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
@@ -358,7 +366,7 @@ def ui_generate(key_value_dict=[], exe_time=0, decode_res_list=[]):
 
     # 輸出 zbar + dbr 解碼結果
     print("***** zbar + dbr 解碼結果 ***********************************")
-    print(decode_res_list)
+    print(combined_result)
     print()
 
     print("************************************************************")
@@ -369,7 +377,7 @@ def ui_generate(key_value_dict=[], exe_time=0, decode_res_list=[]):
     window = Tk()
 
     # 如果要印出decode結果，則加長UI
-    if decode_res_list:
+    if combined_result:
         height = 650
     else:
         height = 350
@@ -414,7 +422,7 @@ def ui_generate(key_value_dict=[], exe_time=0, decode_res_list=[]):
     tree.pack()
 
     # 如果有輸入decode_res_list則印出decode結果
-    if decode_res_list:
+    if combined_result:
         # 設定"解碼結果"描述
         label = Label(text="解碼結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
         label.pack()
@@ -424,8 +432,18 @@ def ui_generate(key_value_dict=[], exe_time=0, decode_res_list=[]):
 
         # 轉換解碼結果(List2Str)
         decode_res = ''
-        for res in decode_res_list:
-            decode_res += str(res)
+        for result in combined_result:
+            label_id=result['label_id']
+            label_id="*******label_id:"+str(label_id)+"*******"
+            decode_res += str(label_id)
+            decode_res += '\n'
+            barcode_result=result['barcode_result']
+            ocr_result=result['ocr_result']
+            ocr_result="ocr_result:"+str(ocr_result)
+            barcode_result="barcode_result:"+str(barcode_result)
+            decode_res += str(ocr_result)
+            decode_res += '\n'
+            decode_res += str(barcode_result)
             decode_res += '\n'
         # 匯入解碼結果表格
         text.insert(END, decode_res)
@@ -756,14 +774,18 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
     global os
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
     print("yolo initial done")
-
+    mode_flag=-1
     # 資料夾裡面每個檔案
-    pathlist = sorted(Path("./input_dir/type_1/").glob('*'))  # 用哪個資料夾裡的檔案
-
+    dir_path = "./input_dir/type_2/"
+    pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
+    #print("請選擇模式:1.單一label 2. multi label")
+    #mode_flag=input()
     for path in pathlist:  # path: 每張檔案的路徑
         # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
         start = time.time()
-
+        sub_name = path.name[-4:]
+        if path.name[-4:]!=".jpg":
+            continue
         # 讀取拍攝好的照片(result_pic_orig.jpg)
         img_path = os.path.join('.', path)
         img = cv2.imread(img_path)
@@ -793,16 +815,16 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         imformation_list=key_to_value.data_preprocess(para_ocr_result)
         config=None
-        image_path="./config/"
-        config_path="./config/config.json"
+        save_config_path=dir_path
+        config_path=dir_path+"config.json"
         if os.path.isfile(config_path):
             with open(config_path) as f:
                 config=json.load(f)['config']
         if config==None:
-            result_list,match_text_list=key_to_value.first_compare(imformation_list,image_path)
+            result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path)
         else:
             result_list,match_text_list=key_to_value.normal_compare(imformation_list,config)
-        
+      
         #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
 
@@ -811,9 +833,12 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         # dbr decode
         dbr_decode_res = dbr_decode(image_path)
-
+        barcode_list = [barcode['text'] for barcode in dbr_decode_res]
+        #barcode_list = key_to_value.barcode_data_preprocess()
+        combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res)
+        key_to_value.draw_final_pic(combined_result,image_path)
         # 整合zbar與dbr decode的結果
-        for dbr_result in dbr_decode_res:
+        for dbr_result in barcode_list:
             decode_list.append(dbr_result)
 
         # 印出Google OCR結果
@@ -843,7 +868,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         #####################################################
         # 印出UI
-        ui_generate(result_list, exe_time, decode_list)
+        ui_generate(result_list, exe_time, combined_result)
 
         # ----release
         decode_list = []

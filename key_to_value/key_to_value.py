@@ -6,6 +6,7 @@ import os
 import copy
 import cv2
 
+
 def img_resize(img):
     height,width=img.shape[0],img.shape[1]
     renew_length=900#自定義最長邊愈拉長至多長
@@ -14,6 +15,98 @@ def img_resize(img):
     else:#(height>width) 拉長height至愈調整尺寸
         img_new=cv2.resize(img,(int(width*renew_length/height),renew_length))
     return img_new
+
+def result_grouping(result_list,img):
+
+    idx_img = img.copy()
+    for result in result_list:
+        bounding_poly=result['bounding_poly']
+        min_x=None
+        min_y=None
+        max_x=None
+        max_y=None
+
+        for axis in bounding_poly:
+            cur_x=axis[0]
+            cur_y=axis[1]
+            if min_x is None or min_x>cur_x:
+                min_x=cur_x
+            if max_x is None or max_x<cur_x:
+                max_x=cur_x
+            if min_y is None or min_y>cur_y:
+                min_y=cur_y
+            if max_y is None or max_y<cur_y:
+                max_y=cur_y
+
+        cv2.rectangle(idx_img, (min_x, min_y), (max_x, max_y), (0,0,255),thickness=3)
+    idx_img=img_resize(idx_img)
+    cv2.namedWindow("show_col", cv2.WINDOW_NORMAL)
+    crop_y = int(1*idx_img.shape[0])
+    crop_x = int(1*idx_img.shape[1])
+    cv2.resizeWindow("show_col",crop_x,crop_y)
+    cv2.imshow("show_col",idx_img)
+    cv2.waitKey(1)
+    cv2.imshow("show_col",idx_img)
+    cv2.waitKey(0)
+
+def draw_final_pic(combined_result,img_path):
+    img=cv2.imread(img_path)
+    idx_img = img.copy()
+    color_list=[(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255)]
+    for result in combined_result:
+        now_label_id=result['label_id']
+        barcode_bounding_poly=result['barcode_bounding_poly']
+        ocr_bounding_poly=result['ocr_bounding_poly']
+        min_x=None
+        min_y=None
+        max_x=None
+        max_y=None
+
+        for axis in ocr_bounding_poly:
+            cur_x=axis[0]
+            cur_y=axis[1]
+            if min_x is None or min_x>cur_x:
+                min_x=cur_x
+            if max_x is None or max_x<cur_x:
+                max_x=cur_x
+            if min_y is None or min_y>cur_y:
+                min_y=cur_y
+            if max_y is None or max_y<cur_y:
+                max_y=cur_y
+        cv2.rectangle(idx_img, (min_x, min_y), (max_x, max_y), color_list[now_label_id],thickness=3)
+        # idx_img_test=img_resize(idx_img.copy())
+        # cv2.namedWindow("show_col", cv2.WINDOW_NORMAL)
+        # crop_y = int(1*idx_img.shape[0])
+        # crop_x = int(1*idx_img.shape[1])
+        # cv2.resizeWindow("show_col",crop_x,crop_y)
+        # cv2.imshow("show_col",idx_img)
+        # cv2.waitKey(0)
+        min_x=None
+        min_y=None
+        max_x=None
+        max_y=None
+
+        for axis in barcode_bounding_poly:
+            cur_x=axis[0]
+            cur_y=axis[1]
+            if min_x is None or min_x>cur_x:
+                min_x=cur_x
+            if max_x is None or max_x<cur_x:
+                max_x=cur_x
+            if min_y is None or min_y>cur_y:
+                min_y=cur_y
+            if max_y is None or max_y<cur_y:
+                max_y=cur_y
+
+        cv2.rectangle(idx_img, (min_x, min_y), (max_x, max_y), color_list[now_label_id],thickness=3)
+    idx_img=img_resize(idx_img)
+    cv2.namedWindow("show_col", cv2.WINDOW_NORMAL)
+    crop_y = int(1*idx_img.shape[0])
+    crop_x = int(1*idx_img.shape[1])
+    cv2.resizeWindow("show_col",crop_x,crop_y)
+    cv2.imshow("show_col",idx_img)
+    cv2.waitKey(0)
+
 
 #觀察:(XX) XX為用於qrcode中的標示
 def data_preprocess(results)-> List[dict]:#傳入圖片ocr辨識結果  
@@ -45,7 +138,7 @@ def data_preprocess(results)-> List[dict]:#傳入圖片ocr辨識結果
 
     return imformation_list
 
-def barcode_data_preprocess(codes)-> List[dict]:#傳入圖片ocr辨識結果  
+def barcode_data_preprocess(codes)-> List[dict]:#傳入barcode結果 
     diction_list=[]
     for code in codes:
         text=code.data.decode('utf-8')
@@ -97,7 +190,9 @@ def search_col_data_idx(idx,number,imformation_list):
 
     return possible_col_data_idx_list 
 def compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list,idx,idx_col_data):
-    for i,col_data in enumerate(col_data_list):
+    col_data_list = sorted(col_data_list,key=lambda d:d['diff_y'])
+    for i,col_dict in enumerate(col_data_list):
+        col_data = col_dict['col_data']
         data=col_name+":"+col_data
         if config==None:
             print(data)
@@ -120,11 +215,16 @@ def compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list
             text_type=type(col_data).__name__
             if text_type=='str':
                 if col_data.isdigit():
-                    text_type=='int'
+                    text_type='int'
             if text_type == config['text_type']:
+
                 if text_type=='str':
                     if text_len != config['text_length']:
                         continue
+                    else:
+                        break
+            else:
+                continue
             break
 
     return col_data,i
@@ -132,8 +232,8 @@ def compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list
 def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
     image_path ="./result_dir/result_pic_processing.jpg"
     img=cv2.imread(image_path)
-    record_list=['QTY','lot','Date'] #紀錄事項會從config載入
-    record_dict={'QTY':["QUANTITY","TOTALQTY","QTY","Q"],'LOT':["LOTNO","LOTID","LOT"],'DATE':["DATECODE"],'PN':["P/N","PARTNO"],'COO':["COO"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    record_list=['QTY','LOT','DATE','PN','COO'] #紀錄事項會從config載入
+    record_dict={'QTY':["QUANTITY","TOTALQTY","QTY","Q"],'LOT':["LOTNO","LOTID","LOT"],'DATE':["DATECODE","DC"],'PN':["P/N","PARTNO"],'COO':["COO"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
     result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[]} #紀錄比對事項
     result_list=[]
     match_text_list=[]
@@ -244,136 +344,114 @@ def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
 
             print("欄位資料:"+col_name+":"+col_data)
             print("欄位idx:"+str(col_data_idx_list[i]+idx))
-            diction={col_name:col_data,"location":col_data_idx_list[i]}
+            diction={col_name:col_data,"location":col_data_idx_list[i],"bounding_poly":bounding_poly,'label_id':0}
             result_list.append(diction)
+
     with open(os.path.join(config_path, "config.json"), "w") as f:
         json.dump({"config": config_list}, f)
     #加入第二種審核模式(提高準確率) 想法:word_result
 
     return result_list,match_text_list
 
-#def normal_compare(config):
 def normal_compare(imformation_list,config)-> Union[List[dict],List[dict]]:
 
     image_path ="./result_dir/result_pic_processing.jpg"
     img=cv2.imread(image_path)
     record_list=['QTY','lot','Date'] #紀錄事項會從config載入
-    record_dict={'QTY':["QUANTITY","TOTALQTY","QTY","Q"],'LOT':["LOTNO","LOTID","LOT"],'DATE':["DATECODE"],'PN':["P/N","PARTNO"],'COO':["COO"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    record_dict={'QTY':["QUANTITY","TOTALQTY","QTY","Q"],'LOT':["LOTNO","LOTID","LOT"],'DATE':["DATECODE","DC"],'PN':["P/N","PARTNO"],'COO':["COO"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
     result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[]} #紀錄比對事項
     result_list=[]
     match_text_list=[]
     config_list=config
 
-    # for i,imformation in enumerate(imformation_list):
-    #     match_text_flag=False
-    #     text=imformation['text'] #找出目前的文字
-    #     max_score_list=[]
-    #     for col_list_name in record_dict.keys():#使用預設col_list_name查找圖片中相對應的col
-    #         max_score=0
-    #         offset=0
-    #         col_list=record_dict[col_list_name]
-    #         #需再新增紀錄本類型圖片所使用的col名稱 降低失誤率
-    #         #加入match_text機制
-    #         for col_name in col_list:
-    #             match_text=""
-    #             score=difflib.SequenceMatcher(None, col_name, text).quick_ratio()
-    #             longest_match=difflib.SequenceMatcher(None, col_name, text).find_longest_match(0,len(col_name),0,len(text))
-    #             if longest_match.size!=0:
-    #                 match_text=col_name[longest_match.a:longest_match.a+longest_match.size]
-    #             if score>max_score:
-    #                 max_score=score
-    #                 if max_score==1.0:
-    #                     break
-    #             #match_text機制
-    #             #如match_text後有文字才新增
-    #             if match_text==col_name and match_text!=text[longest_match.b:]:
-    #                 match_text_flag=True
-    #                 #print(text[longest_match.b+longest_match.size:])
-    #                 offset=offset+1
-    #                 new_text=text[(longest_match.b+longest_match.size):]
-    #                 #判斷是否有因":"分詞，有的話代表有贅詞
-    #                 if i!=0:
-    #                     if(imformation_list[i-1]['x']==imformation_list[i]['x'] and imformation_list[i-1]['y']==imformation_list[i]['y']):
-    #                         new_text=imformation_list[i-1]['text']
-    #                 new_information_dict={'text':new_text,'idx':i,'col':col_list_name}
-    #                 match_text_list.append(new_information_dict)
-    #                 break
-    #             #match_text無新增 但文字符合col_name 高度正相關
-    #             if match_text==col_name:
-    #                 max_score=2
-    #         if match_text_flag:
-    #             break
-    #         if max_score>0.6 and match_text_flag==False: #如果分數達標 認定為col
-    #             max_score_diction={'max_score':max_score,'col':col_list_name}#紀錄max_score分數
-    #             max_score_list.append(max_score_diction)
-    #     if len(max_score_list)!=0:
-    #         max_score_list=sorted(max_score_list,key=lambda d:d['max_score'])
-    #         col_list_name=max_score_list[-1]['col']
-    #         result_dict[col_list_name].append(i)#紀錄在information list的位置
-    
     #確認目前col_name是否正確
     def check_col_name(now_col_name,now_idx,record_dict,record_col_name,imformation_list) -> bool:
         #確認 now_idx 所對應的information是否為對應的 col_name
 
-        max_num=5 #設定查找範圍
-        num=0
-        for i in range(now_idx,len(imformation_list)):
-            if num<max_num:
-                num=num+1
-            else:
-                break
-            now_imformation_text = imformation_list[i]['text']
-            if record_col_name == now_imformation_text:
-                return True,i
-            for col_name in record_dict[now_col_name]:
+        max_num=50 #設定查找範圍
+        back_num = -1
+        forward_num = -1
+        num = 0
+
+        if len(imformation_list) <= now_idx:
+            return False,-1
+        while(forward_num<max_num or back_num<max_num):
+            #往後找
+            forward_num = forward_num+1
+            if (len(imformation_list)-1)>=(now_idx+forward_num):
+                now_imformation_text =imformation_list[now_idx+forward_num]['text']
+                if record_col_name == now_imformation_text:
+                    return True,now_idx+forward_num
+                for col_name in record_dict[now_col_name]:
                 #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
-                if now_imformation_text == col_name:
-                    return True,i
-        num=0
-        for i in range(now_idx,0,-1):
-            if num<max_num:
-                num=num+1
-            else:
-                break
-            now_imformation_text = imformation_list[i]['text']
-            if record_col_name == now_imformation_text:
-                return True,i
-            for col_name in record_dict[now_col_name]:
+                    if now_imformation_text == col_name:
+                        return True,now_idx+forward_num
+            #往前找
+            back_num = back_num+1
+            if (now_idx-back_num)>=0:
+                now_imformation_text =imformation_list[now_idx-back_num]['text']
+                if record_col_name == now_imformation_text:
+                    return True,now_idx-back_num
+                for col_name in record_dict[now_col_name]:
                 #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
-                if now_imformation_text == col_name:
-                    return True,i
+                    if now_imformation_text == col_name:
+                        return True,now_idx-back_num
+        return False,-1
 
-        return False,i
+    config_list=sorted(config_list,key=lambda d:d['col_name_idx'])
+    saved_imformation_list=imformation_list.copy()
+    label_id=-1
+    while len(imformation_list) != 0:
+        max_idx=-1
+        label_id=label_id+1
 
+        for saved_config in config_list:
+
+            now_col_name = saved_config['col']
+            now_idx = saved_config['col_name_idx']
+            now_data_idx=saved_config['col_data_idx']
+            now_data_idx_list=saved_config['col_data_idx_list']
+            record_col_name = saved_config['col_name_text']
+            col_name_flag,now_idx = check_col_name(now_col_name,now_idx,record_dict,record_col_name,imformation_list)
+            
+            if now_idx == -1:
+                break
+            if col_name_flag == False:# 如為True 代表 一模一樣
+                #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
+                print("請問config是否正確")
+                continue
+
+            if now_idx>max_idx:
+                max_idx=now_idx
+
+            col_data_list=[]
+
+            for data_idx in now_data_idx_list:
+                if data_idx+now_idx<len(imformation_list):
+                    col_data = imformation_list[now_idx+data_idx]['text']
+                    diff_y = imformation_list[now_idx]['y']-imformation_list[now_idx+data_idx]['y']
+                    diction={'col_data':col_data,'diff_y':abs(diff_y)}
+                    col_data_list.append(diction)
+                else:
+                    break
+
+            col_data,i = compare_col_data(col_data_list,now_col_name,config_list,saved_config,now_data_idx_list,now_idx,record_col_name)
+            #now_idx+i為col_data now_idx為col_name
+            col_name_imformation = imformation_list[now_idx]
+            col_y = col_name_imformation['y']
+            bounding_poly=col_name_imformation['bounding_poly']            
+            print("欄位資料:"+str(now_col_name)+":"+str(col_data))
+            #print("欄位y位置:"+str(col_y))
+            diction={now_col_name:col_data,"location":col_y,"bounding_poly":bounding_poly,"label_id":label_id}
+            result_list.append(diction)
+
+        imformation_list=imformation_list[max_idx+1:]
+        if max_idx == -1:
+            break
+
+    #result_grouping(result_list,img)
         
-    
-    for saved_config in config_list:
-        now_col_name = saved_config['col']
-        now_idx = saved_config['col_name_idx']
-        now_data_idx=saved_config['col_data_idx']
-        now_data_idx_list=saved_config['col_data_idx_list']
-        record_col_name = saved_config['col_name_text']
-        col_name_flag,now_idx = check_col_name(now_col_name,now_idx,record_dict,record_col_name,imformation_list)
-        
-        if col_name_flag == False:# 如為True 代表 一模一樣
-
-            #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
-            print("請問config是否正確")
-            continue
-        #確認col_name正確 找出可能的col_data
-
-        col_data_list=[]
-        for data_idx in now_data_idx_list:
-            col_data=imformation_list[now_idx+data_idx]['text']
-            col_data_list.append(col_data)
-
-        col_data,i = compare_col_data(col_data_list,now_col_name,config_list,saved_config,now_data_idx_list,now_idx,record_col_name)
-        col_y=imformation_list[i]['y']            
-        print("欄位資料:"+str(now_col_name)+":"+str(col_data))
-        #print("欄位y位置:"+str(col_y))
-        diction={now_col_name:col_data,"location":col_y}
-        result_list.append(diction)
-    
+    #def word_grouping():
     #match的不使用config限制 暫定
     #可能加入判斷後 再確認鄰近information判別是否有符合之資訊
     # for match_diction in match_text_list:
@@ -424,7 +502,60 @@ def normal_compare(imformation_list,config)-> Union[List[dict],List[dict]]:
 
     #加入第二種審核模式用於標點符號沒偵測到
     return result_list,match_text_list
-            
+
+# barcode找不到未設計完成
+def barcode_compare_ocr(result_list,dbr_decode_res):#要改
+
+    record_list=['QTY','LOT','DATE','PN','COO']
+    barcode_list = dbr_decode_res
+    del_barcode_idx=-1
+    now_label_id=0
+    saved_barcode_list=barcode_list.copy()
+    combined_result=[]
+    match_text_list=[]
+    for result in result_list:
+        #換下一張label compare to barcode result
+        match_text_list=[]
+        if result['label_id'] != now_label_id:
+            now_label_id=result['label_id']
+            barcode_list = barcode_list[del_barcode_idx+1:]
+            del_barcode_idx = -1
+
+        for col_name in record_list:
+            if col_name in result:
+                both_exist_flag=False
+                for idx,barcode_result in enumerate(barcode_list):
+                    barcode_text = barcode_result['text']
+                    barcode_bounding_poly = barcode_result['bounding_poly']
+                    ocr_bounding_poly = result['bounding_poly']
+                    col_data = result[col_name]
+                    score=difflib.SequenceMatcher(None, col_name, barcode_text).quick_ratio()
+                    longest_match=difflib.SequenceMatcher(None, col_data, barcode_text).find_longest_match(0,len(col_data),0,len(barcode_text))
+                    if longest_match.size!=0:
+                        match_text=col_data[longest_match.a:longest_match.a+longest_match.size]
+                    if match_text == col_data:
+                        if del_barcode_idx<idx:
+                            del_barcode_idx = idx
+                        diction={'ocr_result':col_name+":"+col_data,'barcode_result':barcode_text,'label_id':now_label_id,'barcode_bounding_poly':barcode_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly}
+                        match_diction={"del_barcode_idx":del_barcode_idx,'result_information':diction,'match_score':score}
+                        match_text_list.append(match_diction)
+                        #combined_result.append(diction)
+                if len(match_text_list) != 0:
+                    both_exist_flag = True
+                    max_score = 0
+                    match_text_list=sorted(match_text_list,key=lambda d:d['match_score'])
+                    for diction in match_text_list:
+                        if diction['match_score']>max_score:
+                            highest_score_diction = diction['result_information']
+                            max_score = diction['match_score']
+                            del_barcode_idx = diction['del_barcode_idx']
+                        
+    
+                    combined_result.append(highest_score_diction)
+                if both_exist_flag==False:
+                    diction={'ocr_result':col_name+":"+col_data,'barcode_result':"no barcode result",'label_id':now_label_id,'barcode_bounding_poly':ocr_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly}
+                    combined_result.append(diction)
+    return combined_result
             
 
 
