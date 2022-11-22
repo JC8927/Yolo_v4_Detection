@@ -521,28 +521,38 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
     match_text_list=[]
     for result in result_list:
         #換下一張label compare to barcode result
+        del_barcode_idx=-1
         match_text_list=[]
+        closet_diction = None
+        highest_score_diction = None
         if result['label_id'] != now_label_id:
+            combined_result=sorted(combined_result,key=lambda d:d['label_id'])
+            for combined_res in combined_result:
+                if combined_res['del_barcode_idx']==-1:
+                    continue
+                if combined_res['del_barcode_idx']>del_barcode_idx and combined_res['label_id'] == now_label_id:
+                    del_barcode_idx = combined_res['del_barcode_idx']
             now_label_id=result['label_id']
             barcode_list = barcode_list[del_barcode_idx+1:]
-            del_barcode_idx = -1
 
         for col_name in record_list:
             if col_name in result:
                 both_exist_flag=False
+                ocr_bounding_poly = result['bounding_poly']
+                col_data = result[col_name]
+                ocr_y = result['location']
                 for idx,barcode_result in enumerate(barcode_list):
                     barcode_text = barcode_result['text']
                     barcode_bounding_poly = barcode_result['bounding_poly']
-                    ocr_bounding_poly = result['bounding_poly']
-                    col_data = result[col_name]
-                    score=difflib.SequenceMatcher(None, col_name, barcode_text).quick_ratio()
+                    bar_y = int((barcode_bounding_poly[1][1]+barcode_bounding_poly[2][1])/2)
+                    score=difflib.SequenceMatcher(None, col_name, barcode_text).quick_ratio() #評分機制很差 要再改
                     longest_match=difflib.SequenceMatcher(None, col_data, barcode_text).find_longest_match(0,len(col_data),0,len(barcode_text))
                     if longest_match.size!=0:
                         match_text=col_data[longest_match.a:longest_match.a+longest_match.size]
                     if match_text == col_data:
                         if del_barcode_idx<idx:
                             del_barcode_idx = idx
-                        diction={'ocr_result':col_name+":"+col_data,'barcode_result':barcode_text,'label_id':now_label_id,'barcode_bounding_poly':barcode_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly}
+                        diction={'col_name':col_name,'ocr_result':col_data,'barcode_result':barcode_text,'label_id':now_label_id,'barcode_bounding_poly':barcode_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':idx,'ocr_y':ocr_y,'bar_y':bar_y}
                         match_diction={"del_barcode_idx":del_barcode_idx,'result_information':diction,'match_score':score}
                         match_text_list.append(match_diction)
                         #combined_result.append(diction)
@@ -550,16 +560,29 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
                     both_exist_flag = True
                     max_score = 0
                     match_text_list=sorted(match_text_list,key=lambda d:d['match_score'])
+                    min_diff_y = 1000000
                     for diction in match_text_list:
-                        if diction['match_score']>max_score:
+                        result_imformation = diction['result_information']
+                        ocr_y= result_imformation['ocr_y']
+                        bar_y = result_imformation['bar_y']
+                        now_diff_y = abs(ocr_y-bar_y)
+                        #分數夠高用 score 仍只靠上下順序關係 一有miss情形 及錯誤
+                        if diction['match_score']>max_score and diction['match_score']>0.2:
                             highest_score_diction = diction['result_information']
                             max_score = diction['match_score']
                             del_barcode_idx = diction['del_barcode_idx']
+                        else:
+                            if now_diff_y<min_diff_y:
+                                min_diff_y = now_diff_y
+                                closet_diction = diction['result_information']
+
+                    if highest_score_diction == None and closet_diction != None:
+                        highest_score_diction = closet_diction
                         
     
                     combined_result.append(highest_score_diction)
                 if both_exist_flag==False:
-                    diction={'ocr_result':col_name+":"+col_data,'barcode_result':"no barcode result",'label_id':now_label_id,'barcode_bounding_poly':ocr_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly}
+                    diction={'col_name':col_name,'ocr_result':col_name+":"+col_data,'barcode_result':"no barcode result",'label_id':now_label_id,'barcode_bounding_poly':ocr_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':-1 ,'ocr_y':ocr_y,'bar_y':-1}
                     combined_result.append(diction)
     return combined_result
             
