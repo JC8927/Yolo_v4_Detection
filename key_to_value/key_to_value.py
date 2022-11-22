@@ -332,11 +332,17 @@ def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
             check=input()
             if check!="T":
                 continue
+
             col_data_idx_list=search_col_data_idx(idx,20,imformation_list)
             col_data_list=[]
             for data_idx in col_data_idx_list:
-                col_data=imformation_list[data_idx+idx]['text']
-                col_data_list.append(col_data)
+                if data_idx+idx<len(imformation_list):
+                    col_data = imformation_list[idx+data_idx]['text']
+                    diff_y = imformation_list[idx]['y']-imformation_list[idx+data_idx]['y']
+                    diction={'col_data':col_data,'diff_y':abs(diff_y)}
+                    col_data_list.append(diction)
+                else:
+                    break
 
             #測試審核機制
             #config應針對不同選項有所調整 另外一個程式
