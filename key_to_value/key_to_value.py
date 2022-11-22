@@ -566,7 +566,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
                         ocr_y= result_imformation['ocr_y']
                         bar_y = result_imformation['bar_y']
                         now_diff_y = abs(ocr_y-bar_y)
-                        #分數夠高用 score 仍只靠上下順序關係 一有miss情形 及錯誤
+                        #分數夠高用 score 仍只靠上下順序關係 一有miss情形就錯誤
                         if diction['match_score']>max_score and diction['match_score']>0.2:
                             highest_score_diction = diction['result_information']
                             max_score = diction['match_score']
