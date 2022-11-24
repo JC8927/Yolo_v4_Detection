@@ -643,56 +643,30 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
     frame_count = 0
     FPS = "0"
     d_t = 0
-
+    dir_path = "./Input_dir/real_time_img_path/"
+    label_name="test"
+    frame_num = 0
     #----video streaming init
     cap, height, width, writer = video_init()
 
     #----YOLO v4 init
-    yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
+    # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
 
     decode_list = []
     while (cap.isOpened()):
 
-        ret, img = cap.read()
-        pic = numpy.array(img)
-
-        # 建立decode_list儲存解碼內容
-        decode_result_path = './result_dir/decode_result_txt.txt'
-
-        if ret is True:
-            #----YOLO v4 detection
-            yolo_img,pyz_decoded_str = yolo_v4.detection(img)
-
-            # 在錄影的過程中儲存解碼內容於decode_list
-            decode_result = pyz_decoded_str
-            if decode_result != []:
-                for res in decode_result:
-                    # 一樣的decode結果不重複紀錄
-                    if res not in set(decode_list):
-                        decode_list.append(res)
-                        print(decode_list)
-            #----FPS calculation
-            if frame_count == 0:
-                d_t = time.time()
-            frame_count += 1
-            if frame_count >= 10:
-                d_t = time.time() - d_t
-                FPS = "FPS=%1f" % (frame_count / d_t)
-                frame_count = 0
-
-            # cv2.putText(影像, 文字, 座標, 字型, 大小, 顏色, 線條寬度, 線條種類)
-            cv2.putText(yolo_img, FPS, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3) #123, 255, 18
-
-            #----image display
-            cv2.imshow("Code Reader", yolo_img)
-
+            ret, img = cap.read()
+            pic = numpy.array(img)
 
             # ----按下Q鍵拍下、儲存一張照片
             if cv2.waitKey(1) & 0xFF == ord('q'):
+
                 # 儲存原始照片
-                cv2.imwrite('./result_dir/result_pic_orig.jpg', pic)
+                image_path='./Input_dir/real_time_img_path/'+label_name+str(frame_num)+'.jpg'
+                frame_num = frame_num + 1
+                cv2.imwrite(image_path, pic)
                 # 儲存yolo辨識照片
-                cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
+                #cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
 
                 # ***********************************************************************
                 # 從這邊開始讀取拍攝到的照片並作OCR辨識
@@ -700,88 +674,63 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
                 # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
                 start = time.time()
-
-                # 讀取拍攝好的照片(result_pic_orig.jpg)
-                img_path = './result_dir/result_pic_orig.jpg'  # 用這個路徑讀取最後拍下的照片
-                img = cv2.imread(img_path)
-
-                # 做sha_crap前處理
-                if sha_crap:
-                    img = sha_crap_processing(img)
-
-                # 做retinex前處理
-                if retinex:
-                    img = retinex_processing(img)
-
-                # 輸出前處理後的圖片
-                cv2.imwrite('./result_dir/result_pic_processing.jpg', img)
-
-
-
-                # googleOCR辨識
-                image_path = r'./result_dir/result_pic_processing.jpg'
                 para_ocr_result,word_ocr_result = google_detect_text(image_path)
+                imformation_list=key_to_value.data_preprocess(para_ocr_result)
+                config=None
+                save_config_path=dir_path
+                config_path=dir_path+"config.json"
+                if os.path.isfile(config_path):
+                    with open(config_path) as f:
+                        config=json.load(f)['config']
+                if config==None:
+                    result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path)
+                else:
+                    result_list,match_text_list=key_to_value.normal_compare(imformation_list,config)
+            
+                #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
-                # 輸出googleOCR辨識結果
-                result_path = './result_dir/result_txt.txt'
-
-                f = open(result_path, 'w',encoding='utf-8')
-                fc = open(decode_result_path, 'w',encoding='utf-8')
-                result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
                 # 讀取zbar解碼結果
-                decode_result = pyz_decoded_str
+                decode_list = []
+
                 # dbr decode
                 dbr_decode_res = dbr_decode(image_path)
-
+                barcode_list = [barcode['text'] for barcode in dbr_decode_res]
+                #barcode_list = key_to_value.barcode_data_preprocess()
+                combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res)
+                key_to_value.draw_final_pic(combined_result,image_path)
                 # 整合zbar與dbr decode的結果
-                for dbr_result in dbr_decode_res:
-                    # 將dbr decode
-                    if dbr_result not in set(decode_list):
-                        decode_list.append(dbr_result)
+                for dbr_result in barcode_list:
+                    decode_list.append(dbr_result)
 
                 # 印出Google OCR結果
                 # print("OCR Text Part:\n")
                 ocr_text=[]
                 for res in para_ocr_result:
                     ocr_text.append(res[1][0])
+                    # f.write(res[1][0] + '\n')
                     # print(res)
-
-                # 印出Barcode/QRCode內容
-                # print("Barcode/QRCode Part:\n")
-                for decode in decode_list:
-                    fc.write(decode+'\n')
-                    # print(decode)
-
-                # OCR轉CSV
-                # if toCSV:
-                #     toCSV_list = toCSV_processing(ocr_result)
-
-                # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
-                end = time.time()
-
-                # 用start - end算出程式運行時間，並且print出來
-                exe_time = end - start
 
                 #####################################################
                 # 印出UI
                 # 設定ui主畫面
-                ui_generate(result_list, exe_time, decode_list)
+                end = time.time()
+                exe_time = start - end
+                ui_generate(result_list, exe_time, combined_result)
 
                 # ----release
                 decode_list = []
-                f.close()
-                fc.close()
+                #f.close()
+                #fc.close()
 
             # ----按下X鍵停止錄影並結束程式
             if cv2.waitKey(1) & 0xFF == ord('x'):
                 break
-        else:
-            print("get image failed")
-            break
+            else:
+                print("get image failed")
+                break
 
 
-    yolo_v4.sess.close()
     cap.release()
 
     cv2.destroyAllWindows()
@@ -821,7 +770,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         # googleOCR辨識
         image_path = r'./result_dir/result_pic_processing.jpg'
         print("目前照片:"+str(img_path))
-        para_ocr_result,word_ocr_result = google_detect_text(image_path)
+        
 
         # 輸出googleOCR辨識結果
         result_path = './result_dir/result_txt.txt'
@@ -830,6 +779,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         f = open(result_path, 'w', encoding='utf-8')
         fc = open(decode_result_path, 'w', encoding='utf-8')
 
+        para_ocr_result,word_ocr_result = google_detect_text(image_path)
         imformation_list=key_to_value.data_preprocess(para_ocr_result)
         config=None
         save_config_path=dir_path
