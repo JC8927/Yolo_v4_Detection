@@ -348,20 +348,35 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
     """
     col_name_list=['PN', 'DATE', 'QTY', 'LOT', 'COO']
     key_value_list=[]
+    col_name_value_list = []
+    now_label_id = 0
     for col in col_name_list:
+        now_label_id = 0
+        col_name_value_list = []
         exist_flag=False
         for diction in key_value_dict:
+            if diction['label_id'] != now_label_id:
+                now_label_id = now_label_id+1
+                if exist_flag == False:
+                    col_name_value_list.append('')
             for key in diction.keys():
-                if key==col:
+                if key == col:
                     exist_flag=True
-                    key_value_list.append(diction.get(key))
-        if exist_flag==False:
-            key_value_list.append('')
-
+                    col_name_value_list.append(diction.get(key))
+        if len(col_name_value_list)!= now_label_id+1:
+            col_name_value_list.append('')
+        key_value_list.append(col_name_value_list)
+    label_data_list=[]
+    for i in range(len(key_value_list[0])):
+        data_list=[]
+        for col_value_list in key_value_list:
+            data_list.append(col_value_list[i])
+        label_data_list.append(data_list)
+    
     # 輸出 OCR to CSV 結果
     print("****** OCR to CSV 結果 *************************************")
     print([' ', 'PN', 'DATE', 'QTY', 'LOT', 'COO'])
-    print(key_value_list)
+    print(label_data_list)
     print()
 
     # 輸出 zbar + dbr 解碼結果
@@ -400,11 +415,11 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
 
     # 如果有輸入key_value_list則印出
     # 設定"OCR to CSV 結果"描述
-    label = Label(text="OCR to CSV 結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
+    label = Label(text="RESULT to CSV 結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
     label.pack()
 
     # 設定key&value對應表格
-    tree = ttk.Treeview(window, height=1, padding=(10, 5, 20, 20), columns=('PN', 'Date', 'QTY', 'LOT', 'COO'))
+    tree = ttk.Treeview(window, height=len(label_data_list), padding=(10, 5, 20, 20), columns=('PN', 'Date', 'QTY', 'LOT', 'COO'))
     tree.column("PN", width=200)
     tree.column("Date", width=100)
     tree.column("QTY", width=100)
@@ -418,7 +433,8 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
     tree.heading("COO", text="COO")
 
     # 匯入key&value辨識結果
-    tree.insert("", 0, text="0", values=key_value_list)  # 插入資料，
+    for i,data_list in enumerate(label_data_list):
+        tree.insert("", i, text=i, values=data_list)  # 插入資料，
     tree.pack()
 
     # 如果有輸入decode_res_list則印出decode結果
@@ -438,9 +454,10 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
             decode_res += str(label_id)
             decode_res += '\n'
             barcode_result=result['barcode_result']
-            ocr_result=result['ocr_result']
+            ocr_col_result = result['col_name']+":"
+            ocr_result=ocr_col_result+result['ocr_result']
             ocr_result="ocr_result:"+str(ocr_result)
-            barcode_result="barcode_result:"+str(barcode_result)
+            barcode_result="barcode_result:"+result['col_name']+":"+str(barcode_result)
             decode_res += str(ocr_result)
             decode_res += '\n'
             decode_res += str(barcode_result)
@@ -776,7 +793,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
     print("yolo initial done")
     mode_flag=-1
     # 資料夾裡面每個檔案
-    dir_path = "./input_dir/test_group_1/"
+    dir_path = "./input_dir/test_group_2/"
     pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
     #print("請選擇模式:1.單一label 2. multi label")
     #mode_flag=input()

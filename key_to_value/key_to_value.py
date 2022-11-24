@@ -5,7 +5,7 @@ import json
 import os
 import copy
 import cv2
-
+from fuzzywuzzy import fuzz
 
 def img_resize(img):
     height,width=img.shape[0],img.shape[1]
@@ -545,7 +545,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
                     barcode_text = barcode_result['text']
                     barcode_bounding_poly = barcode_result['bounding_poly']
                     bar_y = int((barcode_bounding_poly[1][1]+barcode_bounding_poly[2][1])/2)
-                    score=difflib.SequenceMatcher(None, col_name, barcode_text).quick_ratio() #評分機制很差 要再改
+                    score = fuzz.ratio(col_data,barcode_text) #評分機制很差 要再改
                     longest_match=difflib.SequenceMatcher(None, col_data, barcode_text).find_longest_match(0,len(col_data),0,len(barcode_text))
                     if longest_match.size!=0:
                         match_text=col_data[longest_match.a:longest_match.a+longest_match.size]
@@ -567,12 +567,12 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
                         bar_y = result_imformation['bar_y']
                         now_diff_y = abs(ocr_y-bar_y)
                         #分數夠高用 score 仍只靠上下順序關係 一有miss情形就錯誤
-                        if diction['match_score']>max_score and diction['match_score']>0.2:
+                        if diction['match_score']>max_score and diction['match_score']>60:
                             highest_score_diction = diction['result_information']
                             max_score = diction['match_score']
                             del_barcode_idx = diction['del_barcode_idx']
                         else:
-                            if now_diff_y<min_diff_y:
+                            if now_diff_y<min_diff_y: #min_diff_y 要做調整用於在有條碼沒辨識到時能夠停止
                                 min_diff_y = now_diff_y
                                 closet_diction = diction['result_information']
 
