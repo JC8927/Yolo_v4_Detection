@@ -6,6 +6,7 @@ import json
 import retinex
 import tensorflow
 import csv
+import Levenshtein
 #import pytesseract
 import numpy as np
 import io
@@ -29,9 +30,10 @@ from tkinter import ttk
 from tkinter import *
 from tkinter import messagebox
 from numpy import number
-from PIL import Image,ImageDraw
+from PIL import Image,ImageDraw,ImageTk, Image
 #from xlwt import Workbook
 from paddleocr import PaddleOCR,draw_ocr
+
 
 ################################# 檢查GPU環境 #################################
 #----tensorflow version check
@@ -325,9 +327,6 @@ def google_detect_text(path):
     # 回傳辨識結果
     return para_result_list,word_result_list
 
-
-
-
 def compare(str1, str2):
     tmp1 = str1.replace(" ", "")
     tmp2 = str2.replace(" ", "")
@@ -337,56 +336,63 @@ def compare(str1, str2):
     else:
         return False
 
-def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
+def quit_window2(window2):
+    btn_photo['state'] = ACTIVE
+    window2.destroy()
+
+def show_photo(path):
+    # 此視窗沒關就不能再開
+    btn_photo['state'] = DISABLED
+
+    window2 = Toplevel()
+    window2.title("Photo")
+    window2.minsize(width=200, height=300)
+    window2.resizable(width=False, height=False)
+    window2.geometry('600x450')
+
+    global img
+    # Get the photo
+    img = Image.open(path)
+
+    # resize
+    img = img.resize((591, 443), Image.ANTIALIAS)
+
+    # Change to PhotoImage
+    img = ImageTk.PhotoImage(img)
+    img_label = Label(window2, image=img)
+    img_label.pack()
+    window2.protocol("WM_DELETE_WINDOW", lambda: quit_window2(window2))
+
+def ui_generate(key_value_list=[], exe_time=0, decode_res_list=[], path=''):
+    window = Tk()
+    decode_list2 = []
+    toCSV_list2 = []
+    print(f"decode_res_list: {decode_res_list}")
+    for i in decode_res_list:
+        decode_list2.append(i.replace(' ', ''))
+    print(f"key_value_list: {key_value_list}")
+    for i in key_value_list:
+        toCSV_list2.append(i.replace(' ', ''))
     """
     input:
-        key_value_dict: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
+        key_value_list: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
         exe_time: 主程式執行時間。
         decode_res_list: 一維碼、二維碼執行結果。
     output:
         show UI
     """
-    col_name_list=['PN', 'DATE', 'QTY', 'LOT', 'COO']
-    key_value_list=[]
-    for col in col_name_list:
-        exist_flag=False
-        for diction in key_value_dict:
-            for key in diction.keys():
-                if key==col:
-                    exist_flag=True
-                    key_value_list.append(diction.get(key))
-        if exist_flag==False:
-            key_value_list.append('')
 
-    # 輸出 OCR to CSV 結果
-    print("****** OCR to CSV 結果 *************************************")
-    print([' ', 'PN', 'DATE', 'QTY', 'LOT', 'COO'])
-    print(key_value_list)
-    print()
-
-    # 輸出 zbar + dbr 解碼結果
-    print("***** zbar + dbr 解碼結果 ***********************************")
-    print(combined_result)
-    print()
-
-    print("************************************************************")
-    print(f"執行時間: {exe_time:.4}")
-    print()
-    print()
-    print()
-    window = Tk()
-
-    # 如果要印出decode結果，則加長UI
-    if combined_result:
-        height = 650
-    else:
-        height = 350
-    screenwidth = window.winfo_screenwidth()  # 屏幕宽度
-    screenheight = window.winfo_screenheight()  # 屏幕高度
-    width = 1000
-    x = int((screenwidth - width) / 2)
-    y = int((screenheight - height) / 2)
-    window.geometry(f'{width}x{height}+{x}+{y}')  # 大小以及位置
+    # # 如果要印出decode結果, 則加長UI
+    # if decode_res_list:
+    #     height = 650
+    # else:
+    #     height = 350
+    # screenwidth = window.winfo_screenwidth()  # 屏幕宽度
+    # screenheight = window.winfo_screenheight()  # 屏幕高度
+    # width = 1000
+    # x = int((screenwidth - width) / 2)
+    # y = int((screenheight - height) / 2)
+    # window.geometry(f'{width}x{height}+{x}+{y}')  # 大小以及位置
 
     window.title("Code Reader")
     window.minsize(width=200, height=300)
@@ -396,70 +402,132 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
 
     # 設定ui名稱
     label = Label(text="Code Reader", font=("Arial", 25, "bold"), padx=5, pady=5, fg="black")
-    label.pack()
+    label.grid(row=0, column=0, columnspan=5)
 
     # 如果有輸入key_value_list則印出
     # 設定"OCR to CSV 結果"描述
     label = Label(text="OCR to CSV 結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
-    label.pack()
+    label.grid(row=1, column=0, columnspan=5)
 
     # 設定key&value對應表格
-    tree = ttk.Treeview(window, height=1, padding=(10, 5, 20, 20), columns=('PN', 'Date', 'QTY', 'LOT', 'COO'))
-    tree.column("PN", width=200)
-    tree.column("Date", width=100)
-    tree.column("QTY", width=100)
-    tree.column("LOT", width=200)
-    tree.column("COO", width=100)
+    PN_label = Label(window, text='PN', anchor='center', padx=5)
+    LOT_label = Label(window, text='LOT', anchor='center', padx=5)
+    Date_label = Label(window, text='Date', anchor='center', padx=5)
+    QTY_label = Label(window, text='QTY', anchor='center', padx=5)
+    COO_label = Label(window, text='COO', anchor='center', padx=5)
 
-    tree.heading("PN", text="PN")
-    tree.heading("Date", text="Date")
-    tree.heading("QTY", text="QTY")
-    tree.heading("LOT", text="LOT")
-    tree.heading("COO", text="COO")
+    PN_label.grid(row=2, column=0)
+    LOT_label.grid(row=2, column=1)
+    Date_label.grid(row=2, column=2)
+    QTY_label.grid(row=2, column=3)
+    COO_label.grid(row=2, column=4)
+
+    # Listbox都在這個list裡
+    list_boxes = []
+
+    for i in range(5):
+        if i < 2:
+            list_box = Listbox(window, width=26, height=1, justify='center')
+            list_box.grid(row=3, column=i, padx=0, pady=5)
+        else:
+            list_box = Listbox(window, width=21, height=1, justify='center')
+            list_box.grid(row=3, column=i, padx=0, pady=5)
+        list_boxes.append(list_box)
 
     # 匯入key&value辨識結果
-    tree.insert("", 0, text="0", values=key_value_list)  # 插入資料，
-    tree.pack()
+    for i in range(5):
+        if toCSV_list2[i] == "-":  # OCR沒抓到資料
+            list_boxes[i].insert(END, "-")
+            list_boxes[i].config(fg="black")
+        elif toCSV_list2[i] in decode_list2:  # OCR跟dbr結果一樣
+            for j in range(len(decode_list2)):
+                if (decode_list2[j] == toCSV_list2[i]):
+                    list_boxes[i].insert(END, decode_res_list[j])
+                    list_boxes[i].config(fg="black")
+                    break
+        else:  # OCR跟dbr結果不一樣
+            same_ratio = False
+            ratio = 0
+            index = -1
+            str1 = toCSV_list2[i]
+            for j in range(len(decode_list2)):
+                str2 = decode_list2[j]
+                sim = Levenshtein.ratio(str1, str2)
+                if sim > ratio:
+                    ratio = sim
+                    index = j
+                    same_ratio = False
+                elif sim == ratio:
+                    same_ratio += True
+            if ratio > 0.8 and not same_ratio:  # 用dbr
+                list_boxes[i].insert(END, decode_res_list[index])
+                list_boxes[i].config(fg="blue")
+            else:  # 用OCR
+                list_boxes[i].insert(END, key_value_list[i])
+                list_boxes[i].config(fg="red")
 
-    # 如果有輸入decode_res_list則印出decode結果
-    if combined_result:
+                # 如果有輸入decode_res_list則印出decode結果
+    if decode_res_list:
         # 設定"解碼結果"描述
         label = Label(text="解碼結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
-        label.pack()
+        label.grid(row=4, column=0, columnspan=5)
 
         # 設定解碼結果表格
-        text = Text(height=15, width=30, font=("Arial", 14), fg="black", state=NORMAL)
+        text = Text(height=10, width=30, font=("Arial", 14), fg="black", state=NORMAL)
 
         # 轉換解碼結果(List2Str)
         decode_res = ''
-        for result in combined_result:
-            label_id=result['label_id']
-            label_id="*******label_id:"+str(label_id)+"*******"
-            decode_res += str(label_id)
-            decode_res += '\n'
-            barcode_result=result['barcode_result']
-            ocr_result=result['ocr_result']
-            ocr_result="ocr_result:"+str(ocr_result)
-            barcode_result="barcode_result:"+str(barcode_result)
-            decode_res += str(ocr_result)
-            decode_res += '\n'
-            decode_res += str(barcode_result)
+        for res in decode_res_list:
+            decode_res += str(res)
             decode_res += '\n'
         # 匯入解碼結果表格
         text.insert(END, decode_res)
 
-        text.pack()
+        text.grid(row=5, column=0, columnspan=5)
 
     # 顯示辨識時間
-    label = Label(text=f"執行時間: {exe_time:.2} (s)", font=("Arial", 14, "bold"), padx=5, pady=25, fg="black")
-    label.pack()
-    #     window.after(3000, window.destroy)
+    label = Label(text=f"執行時間: {exe_time:.2} (s)", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
+    label.grid(row=6, column=0, columnspan=5)
+    # window.after(3000, window.destroy)
+
+    # 點按鈕看照片
+    global btn_photo
+    btn_photo = Button(window, text='Photo', padx=25, pady=10, bd=8, font=("Arial", 10),
+                       command=lambda: show_photo(path))
+    btn_photo.grid(row=7, column=0, columnspan=5, pady=5)
+
+    # 備註
+    l0 = Label(window, text="由OCR辨識為紅字", font=("Arial", 14), fg="red")
+    l1 = Label(window, text="由Barcode辨識為藍字", font=("Arial", 14), fg="blue")
+    l2 = Label(window, text="兩者都有為黑字", font=("Arial", 14), fg="black")
+    l0.grid(row=8, column=0)
+    l1.grid(row=8, column=1, columnspan=3)
+    l2.grid(row=8, column=4)
+
+    # 輸出 OCR to CSV 結果
+    print("****** OCR to CSV 結果 *************************************")
+    print([' ', 'PN', 'DATE', 'QTY', 'LOT', 'COO'])
+    print(key_value_list)
+    print()
+
+    # # 輸出 zbar + dbr 解碼結果
+    # print("***** zbar + dbr 解碼結果 ***********************************")
+    # print(combined_result)
+    # print()
+
+    print("************************************************************")
+    print(f"執行時間: {exe_time:.4}")
+    print()
+    print()
+    print()
+
     window.mainloop()
 
 def toCSV_processing(ocr_result):
 
     # 標頭資訊(重要項目)
-    Header = [' ', 'PN', 'Date', 'QTY', 'LOT', 'COO']
+    # Header = [' ', 'PN', 'Date', 'QTY', 'LOT', 'COO']
+    Header = [' ', 'PN','LOT','Date','QTY','COO']
 
     # 設定資料IO路徑
     result_path = './result_dir/real_time_CSV/real_time.csv'
@@ -473,7 +541,8 @@ def toCSV_processing(ocr_result):
     with open(result_path, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
         #     PN, Date, QTY, LOT, COO = 1, 2, 3, 4, 5  # 設定哪一項放在第幾格
-        PN, Date, QTY, LOT, COO = 0, 1, 2, 3, 4  # 設定哪一項放在第幾格
+        # PN, Date, QTY, LOT, COO = 0, 1, 2, 3, 4  # 設定哪一項放在第幾格
+        PN, LOT, Date, QTY, COO = 0, 1, 2, 3, 4  # 設定哪一項放在第幾格
 
         toCSV_list = ['-', '-', '-', '-', '-']
         EID = 0  # 換行用
@@ -494,6 +563,14 @@ def toCSV_processing(ocr_result):
                 overwrite[PN] = 1
                 EID = 0
 
+            # LOT
+            elif ('LOT' in line2[0] or 'Lot' in line2[0]) and overwrite[LOT] == 0:
+                if len(line2) > 1 and len(line2) == 2:
+                    toCSV_list[LOT] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
+                else:
+                    toCSV_list[LOT] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
+                overwrite[LOT] = 1
+                EID = 0
 
             # Date
             elif ('Date' in line2[0] or 'DATE' in line2[0]) and overwrite[Date] == 0:  # 那行有Date Date那格沒被填過(有些公司有Date code又有Date ，Date code要寫前面)
@@ -511,15 +588,6 @@ def toCSV_processing(ocr_result):
                 else:
                     toCSV_list[QTY] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
                 overwrite[QTY] = 1
-                EID = 0
-
-            # LOT
-            elif ('LOT' in line2[0] or 'Lot' in line2[0]) and overwrite[LOT] == 0:
-                if len(line2) > 1 and  len(line2)==2:
-                    toCSV_list[LOT] = line2[1].lstrip(' ')  # 那行有被分割過(有冒號) 填第2個資料
-                else:
-                    toCSV_list[LOT] = line2[0][3:].lstrip(' ')  # 那行沒被分過(沒冒號) 刪掉前面3個字(QTY)
-                overwrite[LOT] = 1
                 EID = 0
 
             # COO
@@ -710,7 +778,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
                 f = open(result_path, 'w',encoding='utf-8')
                 fc = open(decode_result_path, 'w',encoding='utf-8')
-                result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
+                result_dir,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
                 # 讀取zbar解碼結果
                 decode_result = pyz_decoded_str
@@ -749,7 +817,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 #####################################################
                 # 印出UI
                 # 設定ui主畫面
-                ui_generate(result_list, exe_time, decode_list)
+                ui_generate(result_dir, exe_time, decode_list)
 
                 # ----release
                 decode_list = []
@@ -821,9 +889,9 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
             with open(config_path) as f:
                 config=json.load(f)['config']
         if config==None:
-            result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path)
+            result_dir,match_text_list=key_to_value.first_compare(imformation_list,save_config_path)
         else:
-            result_list,match_text_list=key_to_value.normal_compare(imformation_list,config)
+            result_dir,match_text_list=key_to_value.normal_compare(imformation_list,config)
       
         #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
@@ -835,7 +903,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         dbr_decode_res = dbr_decode(image_path)
         barcode_list = [barcode['text'] for barcode in dbr_decode_res]
         #barcode_list = key_to_value.barcode_data_preprocess()
-        combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res)
+        combined_result = key_to_value.barcode_compare_ocr(result_dir,dbr_decode_res)
         key_to_value.draw_final_pic(combined_result,image_path)
         # 整合zbar與dbr decode的結果
         for dbr_result in barcode_list:
@@ -865,10 +933,30 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         # 用start - end算出程式運行時間，並且print出來
         exe_time = end - start
+        print("****************************************")
+        print(f"result_dir : {result_dir}")
+        print("****************************************")
+        # 將result_dir中的解碼結果傳換成result_list
+        result_list = []
+
+        result_list.append(result_dir[0]['PN'])
+        result_list.append(result_dir[2]['LOT'])
+        result_list.append(result_dir[3]['DATE'])
+        result_list.append(result_dir[4]['QTY'])
+        result_list.append(result_dir[1]['COO'])
 
         #####################################################
         # 印出UI
-        ui_generate(result_list, exe_time, combined_result)
+        # combined_result內目前是dict,無法直接用
+        # ui_generate(result_list, exe_time, combined_result)
+        print("****************************************")
+        print(f"result_list : {result_list}")
+        print(f"decode_list : {decode_list}")
+        print("****************************************")
+
+
+
+        ui_generate(result_list, exe_time, decode_list)
 
         # ----release
         decode_list = []
@@ -1072,8 +1160,8 @@ if __name__ == "__main__":
     GPU_ratio = 0.8
     # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
-    #photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
-    #cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    # photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
+    # cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
 
 
 
