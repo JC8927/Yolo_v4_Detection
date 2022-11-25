@@ -45,10 +45,8 @@ def result_grouping(result_list,img):
     crop_x = int(1*idx_img.shape[1])
     cv2.resizeWindow("show_col",crop_x,crop_y)
     cv2.imshow("show_col",idx_img)
-    cv2.waitKey(1)
-    cv2.imshow("show_col",idx_img)
     cv2.waitKey(0)
-
+    cv2.destroyAllWindows("show_col")
 def draw_final_pic(combined_result,img_path):
     img=cv2.imread(img_path)
     idx_img = img.copy()
@@ -105,7 +103,7 @@ def draw_final_pic(combined_result,img_path):
     crop_x = int(1*idx_img.shape[1])
     cv2.resizeWindow("show_col",crop_x,crop_y)
     cv2.imshow("show_col",idx_img)
-    cv2.waitKey(0)
+    cv2.waitKey(1)
 
 
 #觀察:(XX) XX為用於qrcode中的標示
@@ -167,23 +165,34 @@ def search_col_data_idx(idx,number,imformation_list):
             while(imformation_list[next_idx]['x']<imformation_list[idx]['x']) and next_idx < (len(imformation_list)-1):
                 next_idx=next_idx+1
             if next_flag:
-                possible_col_data_idx_list.append(next_idx-idx)
-                next_idx=next_idx+1
+                if next_idx != (len(imformation_list)-1) :
+                    possible_col_data_idx_list.append(next_idx-idx)
+                    next_idx=next_idx+1
+                elif next_idx == (len(imformation_list)-1) and imformation_list[next_idx]['x']>imformation_list[idx]['x'] :
+                    possible_col_data_idx_list.append(next_idx-idx)
+                    next_idx=next_idx+1
+                else:
+                    next_idx=next_idx+1
             if next_idx>(len(imformation_list)-1):
                 next_flag=False
                 next_idx=next_idx-1
-                break
+                
             
         if pre_idx != None:
             while(imformation_list[pre_idx]['x']<imformation_list[idx]['x']) and pre_idx>0:
                 pre_idx=pre_idx-1
+            if pre_flag:
+                if pre_idx != 0 :
+                    possible_col_data_idx_list.append(pre_idx-idx)
+                    pre_idx=pre_idx-1
+                elif pre_idx == 0 and imformation_list[pre_idx]['x']>imformation_list[idx]['x'] :
+                    possible_col_data_idx_list.append(pre_idx-idx)
+                    pre_idx=pre_idx-1
+                else:
+                    pre_idx=pre_idx-1
             if pre_idx<0:
                 pre_flag=False
                 pre_idx=pre_idx+1
-                break
-            if pre_flag:
-                possible_col_data_idx_list.append(pre_idx-idx)
-                pre_idx=pre_idx-1
         
         if next_flag==False and pre_flag == False:
             break
@@ -229,11 +238,10 @@ def compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list
 
     return col_data,i
             
-def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
-    image_path ="./result_dir/result_pic_processing.jpg"
+def first_compare(imformation_list,config_path,image_path)-> Union[List[dict],List[dict]]:
     img=cv2.imread(image_path)
     record_list=['QTY','LOT','DATE','PN','COO'] #紀錄事項會從config載入
-    record_dict={'QTY':["QUANTITY","TOTALQTY","QTY","Q"],'LOT':["LOTNO","LOTID","LOT"],'DATE':["DATECODE","DC"],'PN':["P/N","PARTNO"],'COO':["COO"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    record_dict={'QTY':["Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty", "Qty.", "Quantity", "Q’ ty", "Q’TY", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT ID", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot", "Lot Code", "Lot ID", "LOTNO", "Lot No", "Lot No.", "Lot Number", "LotNo", "MLOT"],'DATE':["9D", "D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Date", "Date Code", "Date code", "DateCode", "Seal Date"],'PN':["1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part", "Part No", "Part No.", "Part Number", "PartNo", "Product Id", "Product id", "SPN"],'COO':["4L", "COO", "Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "CoO", "Coo", "Country of Origin", "Country of origin", "MADE IN", "Made in", "Origin of"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
     result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[]} #紀錄比對事項
     result_list=[]
     match_text_list=[]
@@ -251,34 +259,36 @@ def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
             #加入match_text機制
             for col_name in col_list:
                 match_text=""
-                score=difflib.SequenceMatcher(None, col_name, text).quick_ratio()
+                score = fuzz.ratio(col_name,text)
                 longest_match=difflib.SequenceMatcher(None, col_name, text).find_longest_match(0,len(col_name),0,len(text))
                 if longest_match.size!=0:
                     match_text=col_name[longest_match.a:longest_match.a+longest_match.size]
                 if score>max_score:
                     max_score=score
-                    if max_score==1.0:
+                    if max_score==100:
                         break
                 #match_text機制
                 #如match_text後有文字才新增
-                if match_text==col_name and match_text!=text[longest_match.b:]:
-                    match_text_flag=True
-                    #print(text[longest_match.b+longest_match.size:])
-                    offset=offset+1
-                    new_text=text[(longest_match.b+longest_match.size):]
-                    #判斷是否有因":"分詞，有的話代表有贅詞
-                    if i!=0:
-                        if(imformation_list[i-1]['x']==imformation_list[i]['x'] and imformation_list[i-1]['y']==imformation_list[i]['y']):
-                            new_text=imformation_list[i-1]['text']
-                    new_information_dict={'text':new_text,'idx':i,'col':col_list_name}
-                    match_text_list.append(new_information_dict)
-                    break
-                #match_text無新增 但文字符合col_name 高度正相關
-                if match_text==col_name:
-                    max_score=2
-            if match_text_flag:
-                break
-            if max_score>0.6 and match_text_flag==False: #如果分數達標 認定為col
+                    
+            #     if match_text==col_name and match_text!=text[longest_match.b:]:
+            #         match_text_flag=True
+            #         #print(text[longest_match.b+longest_match.size:])
+            #         offset=offset+1
+            #         new_text=text[(longest_match.b+longest_match.size):]
+            #         #判斷是否有因":"分詞，有的話代表有贅詞
+            #         if i!=0:
+            #             if(imformation_list[i-1]['x']==imformation_list[i]['x'] and imformation_list[i-1]['y']==imformation_list[i]['y']):
+            #                 new_text=imformation_list[i-1]['text']
+            #         new_information_dict={'text':new_text,'idx':i,'col':col_list_name}
+            #         match_text_list.append(new_information_dict)
+            #         break
+            #     #match_text無新增 但文字符合col_name 高度正相關
+            #     if match_text==col_name:
+            #         max_score=2
+            # if match_text_flag:
+            #     break
+                    
+            if max_score>80 and match_text_flag==False: #如果分數達標 認定為col
                 max_score_diction={'max_score':max_score,'col':col_list_name}#紀錄max_score分數
                 max_score_list.append(max_score_diction)
         if len(max_score_list)!=0:
@@ -300,6 +310,23 @@ def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
             idx_col_x=idx_imformation['x']
             idx_col_y=idx_imformation['y']
             bounding_poly=idx_imformation['bounding_poly']
+            jump_flag = False
+            for diction in result_list:
+                #偵測到為同一個bounding_poly 可能有問題
+                if diction['bounding_poly'] == bounding_poly:
+                    #偵測到是否存在此項目
+                    keys = diction.keys()
+                    for key in keys:
+                        if col_name == key:
+                            #認定存在
+                            jump_flag = True
+                            break
+                    if jump_flag :
+                        break
+                if jump_flag :
+                    break
+            if jump_flag :
+                continue
             min_x=None
             min_y=None
             max_x=None
@@ -325,7 +352,7 @@ def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
             cv2.resizeWindow("show_col",crop_x,crop_y)
             cv2.imshow("show_col",idx_img)
             cv2.waitKey(1)
-            print("請問"+str(idx_col_data)+"是否為"+str(col_name)+"之欄位?")
+            print("請問是否偵測到"+str(col_name)+"之欄位? (在框框內即代表成功)")
             #print("欄位x座標:"+str(idx_col_x))
             #print("欄位y座標:"+str(idx_col_y))
             print("如果符合請輸入:T")
@@ -333,16 +360,18 @@ def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
             if check!="T":
                 continue
 
-            col_data_idx_list=search_col_data_idx(idx,20,imformation_list)
+            col_data_idx_list=search_col_data_idx(idx,20,imformation_list) #中間為查找data之範圍
             col_data_list=[]
+            #col_data查找範圍
             for data_idx in col_data_idx_list:
                 if data_idx+idx<len(imformation_list):
                     col_data = imformation_list[idx+data_idx]['text']
                     diff_y = imformation_list[idx]['y']-imformation_list[idx+data_idx]['y']
-                    diction={'col_data':col_data,'diff_y':abs(diff_y)}
+                    diction={'col_data':col_data,'diff_y':abs(diff_y),'idx':idx+data_idx}
                     col_data_list.append(diction)
                 else:
                     break
+            
 
             #測試審核機制
             #config應針對不同選項有所調整 另外一個程式
@@ -359,12 +388,11 @@ def first_compare(imformation_list,config_path)-> Union[List[dict],List[dict]]:
 
     return result_list,match_text_list
 
-def normal_compare(imformation_list,config)-> Union[List[dict],List[dict]]:
+def normal_compare(imformation_list,config,image_path)-> Union[List[dict],List[dict]]:
 
-    image_path ="./result_dir/result_pic_processing.jpg"
     img=cv2.imread(image_path)
     record_list=['QTY','lot','Date'] #紀錄事項會從config載入
-    record_dict={'QTY':["QUANTITY","TOTALQTY","QTY","Q"],'LOT':["LOTNO","LOTID","LOT"],'DATE':["DATECODE","DC"],'PN':["P/N","PARTNO"],'COO':["COO"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    record_dict={'QTY':["Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty", "Qty.", "Quantity", "Q’ ty", "Q’TY", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT ID", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot", "Lot Code", "Lot ID", "LOTNO", "Lot No", "Lot No.", "Lot Number", "LotNo", "MLOT"],'DATE':["9D", "D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Date", "Date Code", "Date code", "DateCode", "Seal Date"],'PN':["1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part", "Part No", "Part No.", "Part Number", "PartNo", "Product Id", "Product id", "SPN"],'COO':["4L", "COO", "Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "CoO", "Coo", "Country of Origin", "Country of origin", "MADE IN", "Made in", "Origin of"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
     result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[]} #紀錄比對事項
     result_list=[]
     match_text_list=[]
@@ -381,23 +409,60 @@ def normal_compare(imformation_list,config)-> Union[List[dict],List[dict]]:
 
         if len(imformation_list) <= now_idx:
             return False,-1
+        match_col_name_list=[]
         while(forward_num<max_num or back_num<max_num):
             #往後找
             forward_num = forward_num+1
             if (len(imformation_list)-1)>=(now_idx+forward_num):
                 now_imformation_text =imformation_list[now_idx+forward_num]['text']
-                if record_col_name == now_imformation_text:
+                score = fuzz.ratio(record_col_name,now_imformation_text)
+                if score>80:
                     return True,now_idx+forward_num
+                # for col_name in record_dict[now_col_name]:
+                # #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
+                #     score = fuzz.ratio(col_name,now_imformation_text)
+                #     if now_imformation_text == col_name:
+                #         return True,now_idx+forward_num
+            #往前找
+            back_num = back_num+1
+            if (now_idx-back_num)>=0:
+                now_imformation_text =imformation_list[now_idx-back_num]['text']
+                score = fuzz.ratio(record_col_name,now_imformation_text)
+                if score>80:
+                    return True,now_idx-back_num
+                # for col_name in record_dict[now_col_name]:
+                # #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
+                #     if now_imformation_text == col_name:
+                #         return True,now_idx-back_num
+                    
+        max_num=50 #設定查找範圍
+        back_num = -1
+        forward_num = -1
+        num = 0
+
+        if len(imformation_list) <= now_idx:
+            return False,-1
+        match_col_name_list=[]
+        while(forward_num<max_num or back_num<max_num):
+            #往後找
+            forward_num = forward_num+1
+            if (len(imformation_list)-1)>=(now_idx+forward_num):
+                now_imformation_text =imformation_list[now_idx+forward_num]['text']
+                # score = fuzz.ratio(record_col_name,now_imformation_text)
+                # if score>80:
+                #     return True,now_idx+forward_num
                 for col_name in record_dict[now_col_name]:
                 #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
+                    score = fuzz.ratio(col_name,now_imformation_text)
                     if now_imformation_text == col_name:
                         return True,now_idx+forward_num
             #往前找
             back_num = back_num+1
             if (now_idx-back_num)>=0:
                 now_imformation_text =imformation_list[now_idx-back_num]['text']
-                if record_col_name == now_imformation_text:
-                    return True,now_idx-back_num
+                # score = fuzz.ratio(record_col_name,now_imformation_text)
+                # if score>80:
+                #     return True,now_idx-back_num
                 for col_name in record_dict[now_col_name]:
                 #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
                     if now_imformation_text == col_name:
@@ -420,11 +485,8 @@ def normal_compare(imformation_list,config)-> Union[List[dict],List[dict]]:
             record_col_name = saved_config['col_name_text']
             col_name_flag,now_idx = check_col_name(now_col_name,now_idx,record_dict,record_col_name,imformation_list)
             
-            if now_idx == -1:
-                break
             if col_name_flag == False:# 如為True 代表 一模一樣
                 #加入評分機制for 確認 now_col_name 與 imformation_list中 text 的符合程度
-                print("請問config是否正確")
                 continue
 
             if now_idx>max_idx:
@@ -433,6 +495,7 @@ def normal_compare(imformation_list,config)-> Union[List[dict],List[dict]]:
             col_data_list=[]
 
             for data_idx in now_data_idx_list:
+                # 將config中data_idx_list對應到的data取出
                 if data_idx+now_idx<len(imformation_list):
                     col_data = imformation_list[now_idx+data_idx]['text']
                     diff_y = imformation_list[now_idx]['y']-imformation_list[now_idx+data_idx]['y']
@@ -547,6 +610,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
                     bar_y = int((barcode_bounding_poly[1][1]+barcode_bounding_poly[2][1])/2)
                     score = fuzz.ratio(col_data,barcode_text) #評分機制很差 要再改
                     longest_match=difflib.SequenceMatcher(None, col_data, barcode_text).find_longest_match(0,len(col_data),0,len(barcode_text))
+                    match_text = None
                     if longest_match.size!=0:
                         match_text=col_data[longest_match.a:longest_match.a+longest_match.size]
                     if match_text == col_data:

@@ -69,7 +69,7 @@ reader.update_runtime_settings(settings)
 def video_init(is_2_write=False,save_path=None):
     writer = None
     # cap = cv2.VideoCapture(r"http://192.168.0.133:8080/video")
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(2, cv2.CAP_DSHOW)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)#default 480
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)#default 640
 
@@ -642,27 +642,38 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
     #----var
     frame_count = 0
     FPS = "0"
-    d_t = 0
-    dir_path = "./Input_dir/real_time_img_path/"
     label_name="test"
     frame_num = 0
+
     #----video streaming init
     cap, height, width, writer = video_init()
 
+    # FILENAME = 'myvideo.avi'
+    # WIDTH = 1280
+    # HEIGHT = 720
+    # FPS = 24.0
+    # fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    # out = cv2.VideoWriter(FILENAME, fourcc, FPS, (WIDTH, HEIGHT))
     #----YOLO v4 init
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
+
+    print("請輸入目前標籤之資料夾名稱:")
+    folder_name = input()
+    dir_path = "./Input_dir/real_time_img_path/"+folder_name+"/"
+    if not os.path.isdir(dir_path):
+        os.mkdir(dir_path)
 
     decode_list = []
     while (cap.isOpened()):
 
             ret, img = cap.read()
             pic = numpy.array(img)
-
+            cv2.imshow('Preview_Window', img)
             # ----按下Q鍵拍下、儲存一張照片
             if cv2.waitKey(1) & 0xFF == ord('q'):
-
+                cv2.destroyWindow("Preview_Window")
                 # 儲存原始照片
-                image_path='./Input_dir/real_time_img_path/'+label_name+str(frame_num)+'.jpg'
+                image_path='./Input_dir/real_time_img_path/'+folder_name+"/"+label_name+"_"+str(frame_num)+'.jpg'
                 frame_num = frame_num + 1
                 cv2.imwrite(image_path, pic)
                 # 儲存yolo辨識照片
@@ -683,9 +694,9 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                     with open(config_path) as f:
                         config=json.load(f)['config']
                 if config==None:
-                    result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path)
+                    result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path,image_path)
                 else:
-                    result_list,match_text_list=key_to_value.normal_compare(imformation_list,config)
+                    result_list,match_text_list=key_to_value.normal_compare(imformation_list,config,image_path)
             
                 #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
@@ -720,14 +731,12 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
                 # ----release
                 decode_list = []
+                
                 #f.close()
                 #fc.close()
 
             # ----按下X鍵停止錄影並結束程式
             if cv2.waitKey(1) & 0xFF == ord('x'):
-                break
-            else:
-                print("get image failed")
                 break
 
 
@@ -742,13 +751,12 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
     print("yolo initial done")
     mode_flag=-1
     # 資料夾裡面每個檔案
-    dir_path = "./input_dir/test_group_2/"
+    dir_path = "./input_dir/test_group_1/"
     pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
     #print("請選擇模式:1.單一label 2. multi label")
     #mode_flag=input()
     for path in pathlist:  # path: 每張檔案的路徑
         # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
-        start = time.time()
         sub_name = path.name[-4:]
         if path.name[-4:]!=".jpg":
             continue
@@ -780,6 +788,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         fc = open(decode_result_path, 'w', encoding='utf-8')
 
         para_ocr_result,word_ocr_result = google_detect_text(image_path)
+        start = time.time()
         imformation_list=key_to_value.data_preprocess(para_ocr_result)
         config=None
         save_config_path=dir_path
@@ -788,9 +797,9 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
             with open(config_path) as f:
                 config=json.load(f)['config']
         if config==None:
-            result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path)
+            result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path,image_path)
         else:
-            result_list,match_text_list=key_to_value.normal_compare(imformation_list,config)
+            result_list,match_text_list=key_to_value.normal_compare(imformation_list,config,image_path)
       
         #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
