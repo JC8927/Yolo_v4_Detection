@@ -130,6 +130,7 @@ def data_preprocess(results)-> List[dict]:#傳入圖片ocr辨識結果
                     imformation_list.append(diction)
         if split_flag==False:    
             diction={'x':location_mid_x,'y':location_mid_y,'text':text,'bounding_poly':location,'score':score}
+            imformation_list.append(diction)
         # if diction['text']!='':
         #     imformation_list.append(diction)
     imformation_list=sorted(imformation_list,key=lambda d:d['y'])#由y軸座標排序
@@ -237,7 +238,8 @@ def compare_col_data(col_data_list,col_name,config_list,config,col_data_idx_list
             break
 
     return col_data,i
-            
+
+###要將col_name一樣屬性的包一起###
 def first_compare(imformation_list,config_path,image_path)-> Union[List[dict],List[dict]]:
     img=cv2.imread(image_path)
     record_list=['QTY','LOT','DATE','PN','COO'] #紀錄事項會從config載入
