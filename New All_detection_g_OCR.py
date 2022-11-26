@@ -51,7 +51,7 @@ print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
 #pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # 設置GOOGLE OCR API位置
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-4-555d8b63842d.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-5-63f024a409ed.json"
 
 # 建立BarcodeReader
 BarcodeReader.init_license("t0076oQAAADLDNLLexPCL5vfn2vtVNtjVvYQzSHAmkcuhnLZhwoyd50yzV5xlNT6PYgMhdBsXn72R4cNUcOLv82zt0jv+NFJb2RQn/4Yi6Q==")
@@ -1046,8 +1046,8 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     GPU_ratio = 0.8
-    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
-    #photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     #photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
     #cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
 
