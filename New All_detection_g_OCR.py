@@ -30,6 +30,8 @@ from tkinter import *
 from tkinter import messagebox
 from numpy import number
 from PIL import Image,ImageDraw
+from tkinter import *
+from tkinter.messagebox import *
 #from xlwt import Workbook
 #from paddleocr import PaddleOCR,draw_ocr
 
@@ -69,7 +71,7 @@ reader.update_runtime_settings(settings)
 def video_init(is_2_write=False,save_path=None):
     writer = None
     # cap = cv2.VideoCapture(r"http://192.168.0.133:8080/video")
-    cap = cv2.VideoCapture(2, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)#default 480
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)#default 640
 
@@ -257,7 +259,7 @@ def google_detect_text(path):
     """Detects text in the file."""
     client = vision.ImageAnnotatorClient()
     #用於分割的標點符號
-    split_mark_list=["(",")",":"]
+    split_mark_list=["(" , ")" , ":"]
     with io.open(path, 'rb') as image_file:
         content = image_file.read()
 
@@ -298,7 +300,8 @@ def google_detect_text(path):
                             if symbol.text==mark:
                                 mark_flag=True
                                 break
-                        cur_word_text=cur_word_text+symbol.text
+                        if symbol.text != "|":
+                            cur_word_text=cur_word_text+symbol.text
                                         
                     if mark_flag:
                         cur_para_text=cur_para_text+" "
@@ -316,7 +319,8 @@ def google_detect_text(path):
                 cur_para_text=[cur_para_text.strip(" "),1]
                 cur_para_result_list.append(cur_para_loc_list)
                 cur_para_result_list.append(cur_para_text)
-                para_result_list.append(cur_para_result_list)
+                if cur_para_result_list[1][0] != '':
+                    para_result_list.append(cur_para_result_list)
     if response.error.message:
         raise Exception(
             '{}\nFor more info on error messages, check: '
@@ -372,7 +376,7 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
         for col_value_list in key_value_list:
             data_list.append(col_value_list[i])
         label_data_list.append(data_list)
-    
+
     # 輸出 OCR to CSV 結果
     print("****** OCR to CSV 結果 *************************************")
     print([' ', 'PN', 'DATE', 'QTY', 'LOT', 'COO'])
@@ -636,6 +640,116 @@ def retinex_processing(img, retinex_mode='msrcp'):
         )
     return img
 
+##################################### UI class #####################################
+
+class LoginPage(object):
+    def __init__(self, master=None):
+        self.root = master  # 定義內部變數root
+        self.root.geometry('%dx%d' % (400, 250))  # 設定視窗大小
+        self.username = StringVar()
+        self.username.set('admin')
+        self.password = StringVar('')
+        self.password.set('123456')
+        self.createPage()
+
+    def createPage(self):
+        self.page = Frame(self.root)  # 建立Frame
+        self.page.pack()
+        Label(self.page, text='Code Reader 登入系統').grid(row=1, pady=10)
+        Label(self.page).grid(row=0, stick=W)
+        Label(self.page, text='賬戶: ').grid(row=2, stick=W, pady=10)
+        Entry(self.page, textvariable=self.username).grid(row=2, column=1, stick=E)
+        Label(self.page, text='密碼: ').grid(row=3, stick=W, pady=10)
+        Entry(self.page, textvariable=self.password, show='*').grid(row=3, column=1, stick=E)
+        Button(self.page, text='登入', command=self.loginCheck).grid(row=4, stick=W, pady=10)
+        Button(self.page, text='退出', command=self.page.quit).grid(row=4, column=1, stick=E)
+
+    def loginCheck(self):
+        name = self.username.get()
+        secret = self.password.get()
+        if name == 'admin' and secret == '123456':
+            self.page.destroy()
+            MainPage(self.root)
+        else:
+            showinfo(title='錯誤', message='賬號或密碼錯誤！')
+
+class MainPage(object):
+    def __init__(self, master=None):
+        self.root = master  # 定義內部變數root
+        self.root.geometry('%dx%d' % (500, 400))  # 設定視窗大小
+        self.createPage()
+
+    def createPage(self):
+        self.inputPage = InputFrame(self.root)  # 建立不同Frame
+        self.recordPage = RecordFrame(self.root)
+        self.aboutPage = AboutFrame(self.root)
+        self.inputPage.pack()  # 預設顯示資料錄入介面
+        menubar = Menu(self.root)
+        menubar.add_command(label='功能選擇', command=self.inputData)
+        menubar.add_command(label='紀錄查詢', command=self.recordDisp)
+        menubar.add_command(label='關於', command=self.aboutDisp)
+        self.root['menu'] = menubar  # 設定選單欄
+
+    def inputData(self):
+        self.inputPage.pack()
+        self.recordPage.pack_forget()
+        self.aboutPage.pack_forget()
+
+    def recordDisp(self):
+        self.inputPage.pack_forget()
+        self.recordPage.pack()
+        self.aboutPage.pack_forget()
+
+    def aboutDisp(self):
+        self.inputPage.pack_forget()
+        self.recordPage.pack_forget()
+        self.aboutPage.pack()
+
+class InputFrame(Frame):  # 繼承Frame類
+
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+        self.root = master  # 定義內部變數root
+        self.itemName = StringVar()
+        self.importPrice = StringVar()
+        self.sellPrice = StringVar()
+        self.deductPrice = StringVar()
+        self.createPage()
+
+    def createPage(self):
+        Label(self, text='Code Reader 功能選擇').grid(row=1, pady=10)
+        Label(self).grid(row=0, stick=W, pady=10)
+        Label(self, text='即時錄影偵測: ').grid(row=2, stick=W, pady=10)
+        Button(self, text='開始偵測', command=real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,retinex=False)).grid(row=2, column=1, stick=E)
+        Label(self, text='本地相片偵測: ').grid(row=3, stick=W, pady=10)
+        Button(self, text='開始偵測', command=photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retinex=False)).grid(row=3, column=1, stick=E)
+        Label(self, text='雲端相片偵測: ').grid(row=4, stick=W, pady=10)
+        Button(self, text='開始偵測', command=photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retinex=False)).grid(row=4, column=1, stick=E)
+        Label(self, text='跨面標籤偵測: ').grid(row=5, stick=W, pady=10)
+        Button(self, text='開始偵測', command=cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False)).grid(row=5, column=1, stick=E)
+
+
+class RecordFrame(Frame):  # 繼承Frame類
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+        self.root = master  # 定義內部變數root
+        self.itemName = StringVar()
+        self.createPage()
+
+    def createPage(self):
+        Label(self, text='查詢介面').pack()
+
+
+class AboutFrame(Frame):  # 繼承Frame類
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+        self.root = master  # 定義內部變數root
+        self.createPage()
+
+    def createPage(self):
+        Label(self, text='關於').pack()
+
+    # 定義主功能函式
 ###################################### 主程式 #######################################
 
 def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,retinex=False):
@@ -727,7 +841,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 # 設定ui主畫面
                 end = time.time()
                 exe_time = start - end
-                ui_generate(result_list, exe_time, combined_result)
+                #ui_generate(result_list, exe_time, combined_result)
 
                 # ----release
                 decode_list = []
@@ -751,7 +865,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
     print("yolo initial done")
     mode_flag=-1
     # 資料夾裡面每個檔案
-    dir_path = "./input_dir/test_group_1/"
+    dir_path = "./Input_dir/siliconlab_box_1/"
     pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
     #print("請選擇模式:1.單一label 2. multi label")
     #mode_flag=input()
@@ -844,7 +958,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         #####################################################
         # 印出UI
-        ui_generate(result_list, exe_time, combined_result)
+        #ui_generate(result_list, exe_time, combined_result)
 
         # ----release
         decode_list = []
@@ -935,7 +1049,7 @@ def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False
 
         #####################################################
         # 印出UI
-        ui_generate(toCSV_list, exe_time, decode_list)
+        #ui_generate(toCSV_list, exe_time, decode_list)
 
         # ----release
         decode_list = []
@@ -1027,7 +1141,7 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
 
     #####################################################
     # 印出UI
-    ui_generate(toCSV_list, exe_time, decode_list)
+    #ui_generate(toCSV_list, exe_time, decode_list)
 
     # ----release
     decode_list = []
@@ -1046,7 +1160,11 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     GPU_ratio = 0.8
-    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    root = Tk()
+    root.title('Code reader')
+    LoginPage(root)
+    root.mainloop()
+    #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     #photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     #photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
     #cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
