@@ -11,14 +11,13 @@ import numpy as np
 import io
 import os
 from key_to_value import ocr_result
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import copy
 import re
 #import xlwt
 import pyzbar.pyzbar as pyzbar
-from tkinter import *
-from tkinter.messagebox import *
 from src.YOLO import YOLO
 from src.Feature_parse_tf import get_predict_result
 from utils import tools
@@ -27,6 +26,7 @@ from pathlib import Path
 from dbr import *
 from google.cloud import vision
 from tkinter import ttk
+from tkinter import *
 from tkinter import messagebox
 from numpy import number
 from PIL import Image,ImageDraw
@@ -53,7 +53,7 @@ print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
 #pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # 設置GOOGLE OCR API位置
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-5-63f024a409ed.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-4-555d8b63842d.json"
 
 # 建立BarcodeReader
 BarcodeReader.init_license("t0076oQAAADLDNLLexPCL5vfn2vtVNtjVvYQzSHAmkcuhnLZhwoyd50yzV5xlNT6PYgMhdBsXn72R4cNUcOLv82zt0jv+NFJb2RQn/4Yi6Q==")
@@ -706,10 +706,7 @@ class MainPage(object):
         self.aboutPage.pack()
 
 class InputFrame(Frame):  # 繼承Frame類
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/master
     def __init__(self, master=None):
         Frame.__init__(self, master)
         self.root = master  # 定義內部變數root
@@ -753,11 +750,6 @@ class AboutFrame(Frame):  # 繼承Frame類
         Label(self, text='關於').pack()
 
     # 定義主功能函式
-<<<<<<< HEAD
-=======
-
-
->>>>>>> origin/master
 ###################################### 主程式 #######################################
 
 def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,retinex=False):
@@ -966,7 +958,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         #####################################################
         # 印出UI
-        ui_generate(result_list, exe_time, combined_result)
+        #ui_generate(result_list, exe_time, combined_result)
 
         # ----release
         decode_list = []
@@ -1168,23 +1160,12 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     GPU_ratio = 0.8
-<<<<<<< HEAD
-    # root = Tk()
-    # root.title('Code reader')
-    # LoginPage(root)
-    # root.mainloop()
-    #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
-    photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
-=======
-
     root = Tk()
     root.title('Code reader')
     LoginPage(root)
     root.mainloop()
-
-    # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
-    # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
->>>>>>> origin/master
+    #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    #photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     #photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
     #cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
 
