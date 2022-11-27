@@ -11,13 +11,14 @@ import numpy as np
 import io
 import os
 from key_to_value import ocr_result
-import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import copy
 import re
 #import xlwt
 import pyzbar.pyzbar as pyzbar
+from tkinter import *
+from tkinter.messagebox import *
 from src.YOLO import YOLO
 from src.Feature_parse_tf import get_predict_result
 from utils import tools
@@ -26,7 +27,6 @@ from pathlib import Path
 from dbr import *
 from google.cloud import vision
 from tkinter import ttk
-from tkinter import *
 from tkinter import messagebox
 from numpy import number
 from PIL import Image,ImageDraw
@@ -51,7 +51,7 @@ print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
 #pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # 設置GOOGLE OCR API位置
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-4-555d8b63842d.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-5-63f024a409ed.json"
 
 # 建立BarcodeReader
 BarcodeReader.init_license("t0076oQAAADLDNLLexPCL5vfn2vtVNtjVvYQzSHAmkcuhnLZhwoyd50yzV5xlNT6PYgMhdBsXn72R4cNUcOLv82zt0jv+NFJb2RQn/4Yi6Q==")
@@ -372,7 +372,7 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
         for col_value_list in key_value_list:
             data_list.append(col_value_list[i])
         label_data_list.append(data_list)
-    
+
     # 輸出 OCR to CSV 結果
     print("****** OCR to CSV 結果 *************************************")
     print([' ', 'PN', 'DATE', 'QTY', 'LOT', 'COO'])
@@ -635,6 +635,117 @@ def retinex_processing(img, retinex_mode='msrcp'):
             config['high_clip']
         )
     return img
+
+##################################### UI class #####################################
+
+class LoginPage(object):
+    def __init__(self, master=None):
+        self.root = master  # 定義內部變數root
+        self.root.geometry('%dx%d' % (400, 250))  # 設定視窗大小
+        self.username = StringVar()
+        self.username.set('admin')
+        self.password = StringVar('')
+        self.password.set('123456')
+        self.createPage()
+
+    def createPage(self):
+        self.page = Frame(self.root)  # 建立Frame
+        self.page.pack()
+        Label(self.page, text='Code Reader 登入系統').grid(row=1, pady=10)
+        Label(self.page).grid(row=0, stick=W)
+        Label(self.page, text='賬戶: ').grid(row=2, stick=W, pady=10)
+        Entry(self.page, textvariable=self.username).grid(row=2, column=1, stick=E)
+        Label(self.page, text='密碼: ').grid(row=3, stick=W, pady=10)
+        Entry(self.page, textvariable=self.password, show='*').grid(row=3, column=1, stick=E)
+        Button(self.page, text='登入', command=self.loginCheck).grid(row=4, stick=W, pady=10)
+        Button(self.page, text='退出', command=self.page.quit).grid(row=4, column=1, stick=E)
+
+    def loginCheck(self):
+        name = self.username.get()
+        secret = self.password.get()
+        if name == 'admin' and secret == '123456':
+            self.page.destroy()
+            MainPage(self.root)
+        else:
+            showinfo(title='錯誤', message='賬號或密碼錯誤！')
+
+class MainPage(object):
+    def __init__(self, master=None):
+        self.root = master  # 定義內部變數root
+        self.root.geometry('%dx%d' % (500, 400))  # 設定視窗大小
+        self.createPage()
+
+    def createPage(self):
+        self.inputPage = InputFrame(self.root)  # 建立不同Frame
+        self.recordPage = RecordFrame(self.root)
+        self.aboutPage = AboutFrame(self.root)
+        self.inputPage.pack()  # 預設顯示資料錄入介面
+        menubar = Menu(self.root)
+        menubar.add_command(label='功能選擇', command=self.inputData)
+        menubar.add_command(label='紀錄查詢', command=self.recordDisp)
+        menubar.add_command(label='關於', command=self.aboutDisp)
+        self.root['menu'] = menubar  # 設定選單欄
+
+    def inputData(self):
+        self.inputPage.pack()
+        self.recordPage.pack_forget()
+        self.aboutPage.pack_forget()
+
+    def recordDisp(self):
+        self.inputPage.pack_forget()
+        self.recordPage.pack()
+        self.aboutPage.pack_forget()
+
+    def aboutDisp(self):
+        self.inputPage.pack_forget()
+        self.recordPage.pack_forget()
+        self.aboutPage.pack()
+
+class InputFrame(Frame):  # 繼承Frame類
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+        self.root = master  # 定義內部變數root
+        self.itemName = StringVar()
+        self.importPrice = StringVar()
+        self.sellPrice = StringVar()
+        self.deductPrice = StringVar()
+        self.createPage()
+
+    def createPage(self):
+        Label(self, text='Code Reader 功能選擇').grid(row=1, pady=10)
+        Label(self).grid(row=0, stick=W, pady=10)
+        Label(self, text='即時錄影偵測: ').grid(row=2, stick=W, pady=10)
+        Button(self, text='開始偵測', command=real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,retinex=False)).grid(row=2, column=1, stick=E)
+        Label(self, text='本地相片偵測: ').grid(row=3, stick=W, pady=10)
+        Button(self, text='開始偵測', command=photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retinex=False)).grid(row=3, column=1, stick=E)
+        Label(self, text='雲端相片偵測: ').grid(row=4, stick=W, pady=10)
+        Button(self, text='開始偵測', command=photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retinex=False)).grid(row=4, column=1, stick=E)
+        Label(self, text='跨面標籤偵測: ').grid(row=5, stick=W, pady=10)
+        Button(self, text='開始偵測', command=cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False)).grid(row=5, column=1, stick=E)
+
+
+class RecordFrame(Frame):  # 繼承Frame類
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+        self.root = master  # 定義內部變數root
+        self.itemName = StringVar()
+        self.createPage()
+
+    def createPage(self):
+        Label(self, text='查詢介面').pack()
+
+
+class AboutFrame(Frame):  # 繼承Frame類
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+        self.root = master  # 定義內部變數root
+        self.createPage()
+
+    def createPage(self):
+        Label(self, text='關於').pack()
+
+    # 定義主功能函式
+
 
 ###################################### 主程式 #######################################
 
@@ -1046,8 +1157,14 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     GPU_ratio = 0.8
-    real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
-    #photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+
+    root = Tk()
+    root.title('Code reader')
+    LoginPage(root)
+    root.mainloop()
+
+    # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     #photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
     #cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
 
