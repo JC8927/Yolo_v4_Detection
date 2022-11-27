@@ -30,6 +30,8 @@ from tkinter import ttk
 from tkinter import messagebox
 from numpy import number
 from PIL import Image,ImageDraw
+from tkinter import *
+from tkinter.messagebox import *
 #from xlwt import Workbook
 #from paddleocr import PaddleOCR,draw_ocr
 
@@ -69,7 +71,7 @@ reader.update_runtime_settings(settings)
 def video_init(is_2_write=False,save_path=None):
     writer = None
     # cap = cv2.VideoCapture(r"http://192.168.0.133:8080/video")
-    cap = cv2.VideoCapture(2, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)#default 480
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)#default 640
 
@@ -257,7 +259,7 @@ def google_detect_text(path):
     """Detects text in the file."""
     client = vision.ImageAnnotatorClient()
     #用於分割的標點符號
-    split_mark_list=["(",")",":"]
+    split_mark_list=["(" , ")" , ":"]
     with io.open(path, 'rb') as image_file:
         content = image_file.read()
 
@@ -298,7 +300,8 @@ def google_detect_text(path):
                             if symbol.text==mark:
                                 mark_flag=True
                                 break
-                        cur_word_text=cur_word_text+symbol.text
+                        if symbol.text != "|":
+                            cur_word_text=cur_word_text+symbol.text
                                         
                     if mark_flag:
                         cur_para_text=cur_para_text+" "
@@ -316,7 +319,8 @@ def google_detect_text(path):
                 cur_para_text=[cur_para_text.strip(" "),1]
                 cur_para_result_list.append(cur_para_loc_list)
                 cur_para_result_list.append(cur_para_text)
-                para_result_list.append(cur_para_result_list)
+                if cur_para_result_list[1][0] != '':
+                    para_result_list.append(cur_para_result_list)
     if response.error.message:
         raise Exception(
             '{}\nFor more info on error messages, check: '
@@ -702,6 +706,10 @@ class MainPage(object):
         self.aboutPage.pack()
 
 class InputFrame(Frame):  # 繼承Frame類
+<<<<<<< HEAD
+
+=======
+>>>>>>> origin/master
     def __init__(self, master=None):
         Frame.__init__(self, master)
         self.root = master  # 定義內部變數root
@@ -745,8 +753,11 @@ class AboutFrame(Frame):  # 繼承Frame類
         Label(self, text='關於').pack()
 
     # 定義主功能函式
+<<<<<<< HEAD
+=======
 
 
+>>>>>>> origin/master
 ###################################### 主程式 #######################################
 
 def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,retinex=False):
@@ -838,7 +849,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 # 設定ui主畫面
                 end = time.time()
                 exe_time = start - end
-                ui_generate(result_list, exe_time, combined_result)
+                #ui_generate(result_list, exe_time, combined_result)
 
                 # ----release
                 decode_list = []
@@ -862,7 +873,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
     print("yolo initial done")
     mode_flag=-1
     # 資料夾裡面每個檔案
-    dir_path = "./input_dir/test_group_1/"
+    dir_path = "./Input_dir/siliconlab_box_1/"
     pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
     #print("請選擇模式:1.單一label 2. multi label")
     #mode_flag=input()
@@ -1046,7 +1057,7 @@ def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False
 
         #####################################################
         # 印出UI
-        ui_generate(toCSV_list, exe_time, decode_list)
+        #ui_generate(toCSV_list, exe_time, decode_list)
 
         # ----release
         decode_list = []
@@ -1138,7 +1149,7 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
 
     #####################################################
     # 印出UI
-    ui_generate(toCSV_list, exe_time, decode_list)
+    #ui_generate(toCSV_list, exe_time, decode_list)
 
     # ----release
     decode_list = []
@@ -1157,6 +1168,14 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     GPU_ratio = 0.8
+<<<<<<< HEAD
+    # root = Tk()
+    # root.title('Code reader')
+    # LoginPage(root)
+    # root.mainloop()
+    #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+    photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+=======
 
     root = Tk()
     root.title('Code reader')
@@ -1165,6 +1184,7 @@ if __name__ == "__main__":
 
     # real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     # photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
+>>>>>>> origin/master
     #photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
     #cross_photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
 
