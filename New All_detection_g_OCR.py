@@ -27,6 +27,7 @@ from dbr import *
 from google.cloud import vision
 from tkinter import ttk
 from tkinter import *
+from UI import UI
 from tkinter import messagebox
 from numpy import number
 from PIL import Image,ImageDraw
@@ -378,21 +379,21 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
         label_data_list.append(data_list)
 
     # 輸出 OCR to CSV 結果
-    print("****** OCR to CSV 結果 *************************************")
-    print([' ', 'PN', 'DATE', 'QTY', 'LOT', 'COO'])
-    print(label_data_list)
-    print()
+    # print("****** OCR to CSV 結果 *************************************")
+    # print([' ', 'PN', 'DATE', 'QTY', 'LOT', 'COO'])
+    # print(label_data_list)
+    # print()
 
-    # 輸出 zbar + dbr 解碼結果
-    print("***** zbar + dbr 解碼結果 ***********************************")
-    print(combined_result)
-    print()
+    # # 輸出 zbar + dbr 解碼結果
+    # print("***** zbar + dbr 解碼結果 ***********************************")
+    # print(combined_result)
+    # print()
 
-    print("************************************************************")
-    print(f"執行時間: {exe_time:.4}")
-    print()
-    print()
-    print()
+    # print("************************************************************")
+    # print(f"執行時間: {exe_time:.4}")
+    # print()
+    # print()
+    # print()
     window = Tk()
 
     # 如果要印出decode結果，則加長UI
@@ -442,34 +443,34 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
     tree.pack()
 
     # 如果有輸入decode_res_list則印出decode結果
-    if combined_result:
-        # 設定"解碼結果"描述
-        label = Label(text="解碼結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
-        label.pack()
+    # if combined_result:
+    #     # 設定"解碼結果"描述
+    #     label = Label(text="解碼結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
+    #     label.pack()
 
-        # 設定解碼結果表格
-        text = Text(height=15, width=30, font=("Arial", 14), fg="black", state=NORMAL)
+    #     # 設定解碼結果表格
+    #     text = Text(height=15, width=30, font=("Arial", 14), fg="black", state=NORMAL)
 
-        # 轉換解碼結果(List2Str)
-        decode_res = ''
-        for result in combined_result:
-            label_id=result['label_id']
-            label_id="*******label_id:"+str(label_id)+"*******"
-            decode_res += str(label_id)
-            decode_res += '\n'
-            barcode_result=result['barcode_result']
-            ocr_col_result = result['col_name']+":"
-            ocr_result=ocr_col_result+result['ocr_result']
-            ocr_result="ocr_result:"+str(ocr_result)
-            barcode_result="barcode_result:"+result['col_name']+":"+str(barcode_result)
-            decode_res += str(ocr_result)
-            decode_res += '\n'
-            decode_res += str(barcode_result)
-            decode_res += '\n'
-        # 匯入解碼結果表格
-        text.insert(END, decode_res)
+    #     # 轉換解碼結果(List2Str)
+    #     decode_res = ''
+    #     for result in combined_result:
+    #         label_id=result['label_id']
+    #         label_id="*******label_id:"+str(label_id)+"*******"
+    #         decode_res += str(label_id)
+    #         decode_res += '\n'
+    #         barcode_result=result['barcode_result']
+    #         ocr_col_result = result['col_name']+":"
+    #         ocr_result=ocr_col_result+result['ocr_result']
+    #         ocr_result="ocr_result:"+str(ocr_result)
+    #         barcode_result="barcode_result:"+result['col_name']+":"+str(barcode_result)
+    #         decode_res += str(ocr_result)
+    #         decode_res += '\n'
+    #         decode_res += str(barcode_result)
+    #         decode_res += '\n'
+    #     # 匯入解碼結果表格
+    #     text.insert(END, decode_res)
 
-        text.pack()
+    #     text.pack()
 
     # 顯示辨識時間
     label = Label(text=f"執行時間: {exe_time:.2} (s)", font=("Arial", 14, "bold"), padx=5, pady=25, fg="black")
@@ -640,115 +641,6 @@ def retinex_processing(img, retinex_mode='msrcp'):
         )
     return img
 
-##################################### UI class #####################################
-
-class LoginPage(object):
-    def __init__(self, master=None):
-        self.root = master  # 定義內部變數root
-        self.root.geometry('%dx%d' % (400, 250))  # 設定視窗大小
-        self.username = StringVar()
-        self.username.set('admin')
-        self.password = StringVar('')
-        self.password.set('123456')
-        self.createPage()
-
-    def createPage(self):
-        self.page = Frame(self.root)  # 建立Frame
-        self.page.pack()
-        Label(self.page, text='Code Reader 登入系統').grid(row=1, pady=10)
-        Label(self.page).grid(row=0, stick=W)
-        Label(self.page, text='賬戶: ').grid(row=2, stick=W, pady=10)
-        Entry(self.page, textvariable=self.username).grid(row=2, column=1, stick=E)
-        Label(self.page, text='密碼: ').grid(row=3, stick=W, pady=10)
-        Entry(self.page, textvariable=self.password, show='*').grid(row=3, column=1, stick=E)
-        Button(self.page, text='登入', command=self.loginCheck).grid(row=4, stick=W, pady=10)
-        Button(self.page, text='退出', command=self.page.quit).grid(row=4, column=1, stick=E)
-
-    def loginCheck(self):
-        name = self.username.get()
-        secret = self.password.get()
-        if name == 'admin' and secret == '123456':
-            self.page.destroy()
-            MainPage(self.root)
-        else:
-            showinfo(title='錯誤', message='賬號或密碼錯誤！')
-
-class MainPage(object):
-    def __init__(self, master=None):
-        self.root = master  # 定義內部變數root
-        self.root.geometry('%dx%d' % (500, 400))  # 設定視窗大小
-        self.createPage()
-
-    def createPage(self):
-        self.inputPage = InputFrame(self.root)  # 建立不同Frame
-        self.recordPage = RecordFrame(self.root)
-        self.aboutPage = AboutFrame(self.root)
-        self.inputPage.pack()  # 預設顯示資料錄入介面
-        menubar = Menu(self.root)
-        menubar.add_command(label='功能選擇', command=self.inputData)
-        menubar.add_command(label='紀錄查詢', command=self.recordDisp)
-        menubar.add_command(label='關於', command=self.aboutDisp)
-        self.root['menu'] = menubar  # 設定選單欄
-
-    def inputData(self):
-        self.inputPage.pack()
-        self.recordPage.pack_forget()
-        self.aboutPage.pack_forget()
-
-    def recordDisp(self):
-        self.inputPage.pack_forget()
-        self.recordPage.pack()
-        self.aboutPage.pack_forget()
-
-    def aboutDisp(self):
-        self.inputPage.pack_forget()
-        self.recordPage.pack_forget()
-        self.aboutPage.pack()
-
-class InputFrame(Frame):  # 繼承Frame類
-
-    def __init__(self, master=None):
-        Frame.__init__(self, master)
-        self.root = master  # 定義內部變數root
-        self.itemName = StringVar()
-        self.importPrice = StringVar()
-        self.sellPrice = StringVar()
-        self.deductPrice = StringVar()
-        self.createPage()
-
-    def createPage(self):
-        Label(self, text='Code Reader 功能選擇').grid(row=1, pady=10)
-        Label(self).grid(row=0, stick=W, pady=10)
-        Label(self, text='即時錄影偵測: ').grid(row=2, stick=W, pady=10)
-        Button(self, text='開始偵測', command=real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,retinex=False)).grid(row=2, column=1, stick=E)
-        Label(self, text='本地相片偵測: ').grid(row=3, stick=W, pady=10)
-        Button(self, text='開始偵測', command=photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retinex=False)).grid(row=3, column=1, stick=E)
-        Label(self, text='雲端相片偵測: ').grid(row=4, stick=W, pady=10)
-        Button(self, text='開始偵測', command=photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retinex=False)).grid(row=4, column=1, stick=E)
-        Label(self, text='跨面標籤偵測: ').grid(row=5, stick=W, pady=10)
-        Button(self, text='開始偵測', command=cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False)).grid(row=5, column=1, stick=E)
-
-
-class RecordFrame(Frame):  # 繼承Frame類
-    def __init__(self, master=None):
-        Frame.__init__(self, master)
-        self.root = master  # 定義內部變數root
-        self.itemName = StringVar()
-        self.createPage()
-
-    def createPage(self):
-        Label(self, text='查詢介面').pack()
-
-
-class AboutFrame(Frame):  # 繼承Frame類
-    def __init__(self, master=None):
-        Frame.__init__(self, master)
-        self.root = master  # 定義內部變數root
-        self.createPage()
-
-    def createPage(self):
-        Label(self, text='關於').pack()
-
     # 定義主功能函式
 ###################################### 主程式 #######################################
 
@@ -858,14 +750,15 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
     cv2.destroyAllWindows()
 
-def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retinex=False):
+def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retinex=False,folder_path=""):
     # ----YOLO v4 init
     global os
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
     print("yolo initial done")
     mode_flag=-1
     # 資料夾裡面每個檔案
-    dir_path = "./Input_dir/siliconlab_box_1/"
+    dir_path = "./Input_dir/"
+    dir_path = dir_path+folder_path+"/"
     pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
     #print("請選擇模式:1.單一label 2. multi label")
     #mode_flag=input()
@@ -926,7 +819,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         barcode_list = [barcode['text'] for barcode in dbr_decode_res]
         #barcode_list = key_to_value.barcode_data_preprocess()
         combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res)
-        key_to_value.draw_final_pic(combined_result,image_path)
+        #key_to_value.draw_final_pic(combined_result,image_path)
         # 整合zbar與dbr decode的結果
         for dbr_result in barcode_list:
             decode_list.append(dbr_result)
@@ -948,7 +841,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         # OCR轉CSV
         if toCSV:
             toCSV_list = toCSV_processing(ocr_text)
-            print(f"toCSV_list{toCSV_list}")
+            #print(f"toCSV_list{toCSV_list}")
 
         # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
         end = time.time()
@@ -958,7 +851,16 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         #####################################################
         # 印出UI
-        #ui_generate(result_list, exe_time, combined_result)
+
+        img = cv2.imread(image_path)
+        img = img_resize(img)
+        cv2.namedWindow("img", cv2.WINDOW_NORMAL)
+        crop_y = int(1*img.shape[0])
+        crop_x = int(1*img.shape[1])
+        cv2.resizeWindow("img",crop_x,crop_y)
+        cv2.imshow("img",img)
+        cv2.waitKey(1)
+        ui_generate(result_list, exe_time, combined_result)
 
         # ----release
         decode_list = []
@@ -978,7 +880,7 @@ def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False
     # ----YOLO v4 init
     global os
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
-    print("yolo initial done")
+    #print("yolo initial done")
 
     # 資料夾裡面每個檔案
     pathlist = sorted(Path(r"C:/Users/shiii/我的雲端硬碟/code_reader_photo_detect/").glob('*'))  # 用哪個資料夾裡的檔案
@@ -1065,104 +967,382 @@ def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False
     cv2.destroyAllWindows()
     print("done")
 
-def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False):
+def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False,folder_path=''):
     # ----YOLO v4 init
     global os
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
-    print("yolo initial done")
+    #print("yolo initial done")
 
     # 資料夾裡面每個檔案
-    pathlist = sorted(Path(r"C:/Users/shiii/我的雲端硬碟/cross_img_fold/").glob('*'))  # 用哪個資料夾裡的檔案
-
+    dir_path="./Input_dir/"
+    dir_path_first = dir_path+folder_path+"/first/"  
+    dir_path_second = dir_path+folder_path+"/second/" 
+    first_img_name_list=os.listdir(dir_path_first)
+    second_img_name_list=os.listdir(dir_path_second)
+    first_save_config_path=dir_path_first
+    second_save_config_path=dir_path_second
+    pathlist_first = sorted(Path(dir_path_first).glob('*'))  # 用哪個資料夾裡的檔案
+    pathlist_second = sorted(Path(dir_path_second).glob('*'))
     # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
     start = time.time()
     ocr_result = []
 
-    for path in pathlist:  # path: 每張檔案的路徑
-        # 讀取拍攝好的照片(result_pic_orig.jpg)
-        img_path = os.path.join('.', path)
-        print(img_path)
-        img = mpimg.imread(img_path)
+    for first_img_name in first_img_name_list:  # path: 每張檔案的路徑
+            second_img = None
+            img_exist_flag = False
+            sub_name = first_img_name[-4:]
+            if sub_name!=".jpg":
+                continue
+            # 讀取第一張照片
+            first_img_path = dir_path_first+first_img_name
+            first_img = cv2.imread(first_img_path)
+            # 讀取第二張照片
+            for second_img_name in second_img_name_list:
+                if second_img_name == first_img_name:
+                    second_img_path = dir_path_second+second_img_name
+                    second_img = cv2.imread(second_img_path)
+                    img_exist_flag = True
+            if img_exist_flag == False:
+                print("找不到相對應的另一面照片")
+                continue
 
-        # 做sha_crap前處理
-        if sha_crap:
-            img = sha_crap_processing(img)
+            # 輸出googleOCR辨識結果
+            result_path = './result_dir/result_txt.txt'
+            decode_result_path = './result_dir/decode_result_txt.txt'
 
-        # 做retinex前處理
-        if retinex:
-            img = retinex_processing(img)
+            f = open(result_path, 'w', encoding='utf-8')
+            fc = open(decode_result_path, 'w', encoding='utf-8')
 
-        # 輸出前處理後的圖片
-        cv2.imwrite('./result_dir/result_pic_processing.jpg', img)
+            first_para_ocr_result,first_word_ocr_result = google_detect_text(first_img_path)
+            second_para_ocr_result,second_word_ocr_result = google_detect_text(second_img_path)
+            start = time.time()
+            first_imformation_list=key_to_value.data_preprocess(first_para_ocr_result)
+            second_imformation_list=key_to_value.data_preprocess(second_para_ocr_result)
+            first_config=None
+            second_config=None
+            first_config_path=first_save_config_path+"config.json"
+            second_config_path=second_save_config_path+"config.json"
+            if os.path.isfile(first_config_path):
+                with open(first_config_path) as f:
+                    first_config=json.load(f)['config']
+            if os.path.isfile(second_config_path):
+                with open(second_config_path) as f:
+                    second_config=json.load(f)['config']
+            if first_config==None:
+                first_result_list,first_match_text_list=key_to_value.first_compare(first_imformation_list,first_save_config_path,first_img_path)
+            else:
+                first_result_list,first_match_text_list=key_to_value.normal_compare(first_imformation_list,first_config,first_img_path)
+            if second_config==None:
+                second_result_list,second_match_text_list=key_to_value.first_compare(second_imformation_list,second_save_config_path,second_img_path)
+            else:
+                second_result_list,second_match_text_list=key_to_value.normal_compare(second_imformation_list,second_config,second_img_path)
+        
+            #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
-        # googleOCR辨識
-        image_path = r'./result_dir/result_pic_processing.jpg'
-        ocr_result += google_detect_text(image_path)
 
-    # 輸出googleOCR辨識結果
-    result_path = './result_dir/result_txt.txt'
-    decode_result_path = './result_dir/decode_result_txt.txt'
+            # 讀取zbar解碼結果
+            decode_list = []
 
-    f = open(result_path, 'w', encoding='utf-8')
-    fc = open(decode_result_path, 'w', encoding='utf-8')
+            # dbr decode
+            first_dbr_decode_res = dbr_decode(first_img_path)
+            second_dbr_decode_res = dbr_decode(second_img_path)
+            first_barcode_list = [barcode['text'] for barcode in first_dbr_decode_res]
+            second_barcode_list = [barcode['text'] for barcode in second_dbr_decode_res]
+            #barcode_list = key_to_value.barcode_data_preprocess()
+            first_combined_result = key_to_value.barcode_compare_ocr(first_result_list,first_dbr_decode_res)
+            second_combined_result = key_to_value.barcode_compare_ocr(second_result_list,second_dbr_decode_res)
+            #key_to_value.draw_final_pic(first_combined_result,first_img_path)
+            #key_to_value.draw_final_pic(second_combined_result,second_img_path)
+            combined_result = first_combined_result+second_combined_result
+            result_list = first_result_list + second_result_list
+            # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
+            end = time.time()
 
-    # 讀取zbar解碼結果
-    decode_list = []
+            # 用start - end算出程式運行時間，並且print出來
+            exe_time = end - start
 
-    # dbr decode
-    dbr_decode_res = dbr_decode(image_path)
+            #####################################################
+            # 印出UI
+            first_img = img_resize(first_img)
+            second_img = img_resize(second_img)
+            cv2.namedWindow("first_img", cv2.WINDOW_NORMAL)
+            crop_y = int(1*first_img.shape[0])
+            crop_x = int(1*first_img.shape[1])
+            cv2.resizeWindow("first_img",crop_x,crop_y)
+            cv2.imshow("first_img",first_img)
+            cv2.namedWindow("second_img", cv2.WINDOW_NORMAL)
+            crop_y = int(1*second_img.shape[0])
+            crop_x = int(1*second_img.shape[1])
+            cv2.resizeWindow("second_img",crop_x,crop_y)
+            cv2.imshow("second_img",second_img)
+            cv2.waitKey(1)
+            ui_generate(result_list, exe_time, combined_result)
 
-    # 整合zbar與dbr decode的結果
-    for dbr_result in dbr_decode_res:
-        decode_list.append(dbr_result)
+            # ----release
+            decode_list = []
+            f.close()
+            fc.close()
 
-    # 印出Google OCR結果
-    # print("OCR Text Part:\n")
-    for res in ocr_result:
-        f.write(res + '\n')
-        # print(res)
 
-    # 印出Barcode/QRCode內容
-    # print("Barcode/QRCode Part:\n")
-    for decode in decode_list:
-        fc.write(decode + '\n')
-        # print(decode)
-
-    # OCR轉CSV
-    if toCSV:
-        toCSV_list = toCSV_processing(ocr_result)
-        print(f"toCSV_list{toCSV_list}")
-
-    # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
-    end = time.time()
-
-    # 用start - end算出程式運行時間，並且print出來
-    exe_time = end - start
-
-    #####################################################
-    # 印出UI
-    #ui_generate(toCSV_list, exe_time, decode_list)
-
-    # ----release
-    decode_list = []
-    f.close()
-    fc.close()
-
-    #####################################################
-    # ----release
-    # f.close()
-    # fc.close()
-    # yolo_v4.sess.close()
+        #####################################################
+        # ----release
+        # f.close()
+        # fc.close()
+        # yolo_v4.sess.close()
     cv2.destroyAllWindows()
     print("done")
+###################################### 主UI #######################################
 
+from tkinter import *
+from tkinter.messagebox import *
+from tkinter import ttk
+from PIL import Image, ImageTk
+import cv2
+
+
+# 設計登入頁面
+class LoginPage(object):
+    def __init__(self, master=None):
+        self.root = master  # 定義內部變數root
+        self.root.geometry('%dx%d' % (300, 300))  # 設定視窗大小
+        self.username = StringVar()
+        self.username.set('admin')
+        self.password = StringVar('')
+        self.password.set('123456')
+        self.createPage()
+
+    def createPage(self):
+        self.page = Frame(self.root)  # 建立Frame
+        self.page.pack()
+        Label(self.page, text='Code Reader 登入系統').pack()
+        Label(self.page).pack()
+        Label(self.page, text='賬戶: ').pack()
+        Entry(self.page, textvariable=self.username).pack()
+        Label(self.page, text='密碼: ').pack()
+        Entry(self.page, textvariable=self.password, show='*').pack()
+        Button(self.page, text='登入', command=self.loginCheck).pack()
+        Button(self.page, text='退出', command=self.page.quit).pack()
+
+    def loginCheck(self):
+        name = self.username.get()
+        secret = self.password.get()
+        if name == 'admin' and secret == '123456':
+            self.page.destroy()
+            MainPage(self.root)
+        else:
+            showinfo(title='錯誤', message='賬號或密碼錯誤！')
+
+        # 設計主程式頁面
+
+
+class MainPage(object):
+    def __init__(self, master=None):
+        self.root = master  # 定義內部變數root
+        self.root.geometry('%dx%d' % (300, 350))  # 設定視窗大小
+        self.createPage()
+
+    def createPage(self):
+        self.inputPage = InputFrame(self.root)  # 建立不同Frame
+        self.recordPage = RecordFrame(self.root)
+        self.resultPage = ResultFrame(self.root)
+        self.inputPage.pack()  # 預設顯示資料錄入介面
+        menubar = Menu(self.root)
+        menubar.add_command(label='功能選擇', command=self.inputData)
+        menubar.add_command(label='紀錄查詢', command=self.recordDisp)
+        menubar.add_command(label='辨識結果', command=self.resultDisp)
+        self.root['menu'] = menubar  # 設定選單欄
+
+    def inputData(self):
+        self.recordPage.pack_forget()
+        self.resultPage.pack_forget()
+        self.inputPage = InputFrame(self.root)  # 建立不同Frame
+        self.inputPage.pack()
+
+    def recordDisp(self):
+        self.inputPage.pack_forget()
+        self.resultPage.pack_forget()
+        self.recordPage = RecordFrame(self.root)
+        self.recordPage.pack()
+
+    def resultDisp(self):
+        self.inputPage.pack_forget()
+        self.recordPage.pack_forget()
+        self.resultPage = ResultFrame(self.root, root.key_value_dict, root.exe_time, root.combined_result)
+        self.resultPage.pack()
+
+    # 設計功能選擇頁面
+
+
+class InputFrame(Frame):  # 繼承Frame類
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+        self.root = master  # 定義內部變數root
+        self.folder_name = StringVar()                          
+        self.folder_name.set('')
+        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','skywork_box','skywork_disk','STM_disk','melexis_disk','multi_code'])
+        self.createPage()
+
+    def createPage(self):
+        Label(self, text='Code Reader 功能選擇').pack()
+        Label(self).pack()
+        Label(self, text='即時錄影偵測: ').pack()
+        Button(self, text='開始偵測', command=self.real_time_obj_detection).pack()
+        Label(self, text='本地相片偵測: ').pack()
+        Label(self, text='本地相片偵測: ').pack()
+        Button(self, text='開始偵測', command=self.UI_photo_obj_detection).pack()
+        Label(self, text='雲端相片偵測: ').pack()
+        Button(self, text='開始偵測', command=self.photo_obj_detection_cloud).pack()
+        Label(self, text='跨面標籤偵測: ').pack()
+        Button(self, text='開始偵測', command=self.UI_cross_photo_obj_detection).pack()
+        
+        # 設置comboBox讓使用者選擇要用哪個資料夾
+        self.box.pack()
+        
+    def real_time_obj_detection(self):
+        print('real_time_obj_detection')
+        self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
+        folder_name = self.folder_name.get().split(':')[1]
+        root.destroy()
+        #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True,folder_path=folder_name)
+
+
+    def UI_photo_obj_detection(self):
+        print('photo_obj_detection')
+        self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
+        folder_name = self.folder_name.get().split(':')[1]
+        root.destroy()
+        photo_obj_detection(model_path, GPU_ratio=GPU_ratio, toCSV=True,folder_path=folder_name)
+
+    def photo_obj_detection_cloud(self):
+        print('photo_obj_detection_cloud')
+        self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
+        folder_name = self.folder_name.get().split(':')[1]
+        root.destroy()
+#         photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True,folder_name)
+
+    def UI_cross_photo_obj_detection(self):
+        print('cross_photo_obj_detection')
+        self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
+        folder_name = self.folder_name.get().split(':')[1]
+        root.destroy()
+        cross_photo_obj_detection(model_path, GPU_ratio=GPU_ratio, toCSV=True,folder_path=folder_name)
+
+
+class RecordFrame(Frame):  # 繼承Frame類
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+        self.root = master  # 定義內部變數root
+        self.itemName = StringVar()
+        self.createPage()
+
+    def createPage(self):
+        Label(self, text='查詢介面').pack()
+
+
+class ResultFrame(Frame):  # 繼承Frame類
+    def __init__(self, master=None, key_value_dict=[], exe_time=0, combined_result=[]):
+        Frame.__init__(self, master)
+        self.key_value_dict = key_value_dict
+        self.exe_time = exe_time
+        self.combined_result = combined_result
+        self.root = master  # 定義內部變數root
+        self.createPage()
+
+    def inputData(self):
+        self.pack_forget()
+
+    def createPage(self):
+        # 設定變數
+        col_name_list = ['PN', 'DATE', 'QTY', 'LOT', 'COO']
+        key_value_list = []
+
+        # init的時候甚麼都不做
+        if self.key_value_dict == []:
+            # 顯示頁面標題: "尚無辨識結果"
+            label = Label(self, text="尚無辨識結果", font=("Arial", 20, "bold"), padx=5, pady=5, fg="black").pack()
+        else:
+            # 轉換輸入資訊
+            for col in col_name_list:
+                now_label_id = 0
+                col_name_value_list = []
+                exist_flag = False
+                for diction in self.key_value_dict:
+                    if diction['label_id'] != now_label_id:
+                        now_label_id = now_label_id + 1
+                        if exist_flag == False:
+                            col_name_value_list.append('')
+                    for key in diction.keys():
+                        if key == col:
+                            exist_flag = True
+                            col_name_value_list.append(diction.get(key))
+                if len(col_name_value_list) != now_label_id + 1:
+                    col_name_value_list.append('')
+                key_value_list.append(col_name_value_list)
+            label_data_list = []
+
+            for i in range(len(key_value_list[0])):
+                data_list = []
+                for col_value_list in key_value_list:
+                    data_list.append(col_value_list[i])
+                label_data_list.append(data_list)
+
+            # 如果要印出decode結果，則加長UI
+            #             if self.combined_result:
+            #                 height = 650
+            #             else:
+            #                 height = 350
+
+            # 顯示頁面標題: "Code Reader"
+            label = Label(text="Code Reader", font=("Arial", 20, "bold"), padx=5, pady=5, fg="black")
+            label.pack()
+
+            # 顯示當前圖片
+            img_open = Image.open(r'普通標籤.jpg')
+            img_open_width, img_open_height = img_open.size
+            # 自動調整圖片大小
+            resize_factor = 300
+            if img_open_width / img_open_height >= 1:
+                img_open = img_open.resize((int(img_open_width / img_open_height * resize_factor), resize_factor))
+
+            else:
+                img_open = img_open.resize((resize_factor, int(img_open_height / img_open_width * resize_factor)))
+            img_png = ImageTk.PhotoImage(img_open)
+            label_img = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png).pack()
+
+            # 加入辨識結果對應表格
+            tree = ttk.Treeview(root, height=len(label_data_list), padding=(10, 5, 20, 20),
+                                columns=('PN', 'Date', 'QTY', 'LOT', 'COO'))
+            tree.column("PN", width=200)
+            tree.column("Date", width=100)
+            tree.column("QTY", width=100)
+            tree.column("LOT", width=200)
+            tree.column("COO", width=100)
+
+            tree.heading("PN", text="PN")
+            tree.heading("Date", text="Date")
+            tree.heading("QTY", text="QTY")
+            tree.heading("LOT", text="LOT")
+            tree.heading("COO", text="COO")
+
+            for i, data_list in enumerate(label_data_list):
+                tree.insert("", i, text=i, values=data_list)  # 插入資料，
+            tree.pack()
+
+        
+
+            # 顯示辨識時間
+            label = Label(text=f"執行時間: {self.exe_time:.2} (s)", font=("Arial", 14, "bold"), padx=5, pady=25, fg="black")
+            label.pack()
+            button = Button(text='繼續').pack()
+            button = Button(text='回到主頁面', command=self.inputData).pack()
+            root.mainloop()  # 執行視窗
 
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     GPU_ratio = 0.8
-    root = Tk()
-    root.title('Code reader')
-    LoginPage(root)
+    root = Tk() 
+    root.title('Code reader') 
+    LoginPage(root) 
     root.mainloop()
     #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     #photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)

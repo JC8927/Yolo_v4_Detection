@@ -110,8 +110,15 @@ def draw_final_pic(combined_result,img_path):
 #觀察:(XX) XX為用於qrcode中的標示
 def data_preprocess(results)-> List[dict]:#傳入圖片ocr辨識結果  
     imformation_list=[]
-    record_dict={'QTY':["Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty", "Qty.", "Quantity", "Q’ ty", "Q’TY", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT ID", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot", "Lot Code", "Lot ID", "LOTNO", "Lot No", "Lot No.", "Lot Number", "LotNo", "MLOT"],'DATE':["9D", "D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Date", "Date Code", "Date code", "DateCode", "Seal Date"],'PN':["1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part", "Part No", "Part No.", "Part Number", "PartNo", "Product Id", "Product id", "SPN"],'COO':["4L","Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "CoO", "Coo", "Country of Origin", "Country of origin", "MADE IN", "Made in", "Origin of"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
-    result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[]} #紀錄比對事項
+    record_list=['QTY','LOT','DATE','PN','COO'] #紀錄事項會從config載入
+    record_dict={'QTY':['OTY',"Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty.", "Q’ ty", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["Bulk ID","1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot Code", "Lot ID", "LOTNO", "Lot No.", "MLOT"],'DATE':["Trace code1","Trace codes","9D", "D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Seal Date"],'PN':["Type","1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part No.", "PartNo", "SPN"],'COO':["4L","Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "MADE IN", "Origin of"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    for col_list_name in record_dict.keys():
+        col_list=record_dict[col_list_name]
+        col_list=[col_name.upper() for col_name in col_list]
+        for i,col_name in enumerate(col_list):
+            for j,com_col_name in enumerate(col_list):
+                if col_name==com_col_name and i!=j:
+                    print("重複")
     #處理data
     for j in range(len(results)):
         match_col_name_list=[]
@@ -128,48 +135,59 @@ def data_preprocess(results)-> List[dict]:#傳入圖片ocr辨識結果
             split_flag=True
             text_list=whole_text.split(" ")
             for i,text in enumerate(text_list):
-
+                first_flag = False
                 match_flag = False
                 after_text = None
-                cur_text=text
+                cur_text=text.upper()
 
                 for col_list_name in record_dict.keys():
 
                     col_list=record_dict[col_list_name]
+                    col_list=[col_name.upper() for col_name in col_list]
                     for col_name in col_list:
 
                         if col_name.find(' ') != -1:
                             #col_name 中間有空格
                             col_text_list=col_name.split(" ")
                             for k,text in enumerate(col_text_list):
-                                cur_col_text = text
+                                cur_col_text = text.upper()
                                 if cur_col_text ==  cur_text:
                                     if (i+1) != len(text_list):
                                         after_text = text_list[i+1]
+                                    if k == 0:
+                                        first_flag = True
                                     match_flag = True
                                     diction={'cur_text':cur_col_text,'after_text':after_text,'col_list_name':col_list_name,'col_name':col_name,'text_order':i}
                                     match_col_name_list.append(diction)
+                                #對應到col_name第一個就不符合 直接跳出
+                                # if first_flag == False:
+                                #     break
                         else:
                             if col_name == cur_text:
                                 if (i+1) != len(text_list):
                                     after_text = text_list[i+1]
                                 match_flag = True
+                                first_flag = True
                                 diction={'cur_text':cur_text,'after_text':after_text,'col_list_name':col_list_name,'col_name':col_name,'text_order':i}
                                 match_col_name_list.append(diction)
-                if match_flag == False:
+
+                if first_flag == False or first_flag ==True:
                     diction={'x':location_mid_x,'y':location_mid_y,'text':cur_text,'bounding_poly':location,'score':score,'col_name_flag':False}
                     imformation_list.append(diction)
+
             if len(match_col_name_list) != 0:
                 match_col_name_list=sorted(match_col_name_list,key=lambda d:d['text_order'])
                 temp_imformation_list=[]
                 for diction in match_col_name_list:
                     col_list_name = diction['col_list_name']
-                    now_col_name = diction['col_name']
+                    now_col_name = diction['col_name'].upper()
                     col_list=record_dict[col_list_name]
                     cur_text = diction['cur_text']
                     after_text = diction['after_text']
                     start_order = diction['text_order']
                     end_order = None
+                    combined_text = None
+                    #now_col_name 有空格
                     if after_text != None and now_col_name.find(' ') != -1:
                         combined_text = cur_text+" "+after_text
                         for after_text_diction in match_col_name_list:
@@ -184,29 +202,33 @@ def data_preprocess(results)-> List[dict]:#傳入圖片ocr辨識結果
                             diction={'x':location_mid_x,'y':location_mid_y,'text':combined_text,'bounding_poly':location,'score':score,'col_name_flag':True,'start_order':start_order,'end_order':end_order}
                             temp_imformation_list.append(diction)
                     else:
-                        if after_text != None:
+                        if after_text != None and now_col_name == cur_text:
                             combined_text = cur_text+" "+after_text
                             diction={'x':location_mid_x,'y':location_mid_y,'text':cur_text,'bounding_poly':location,'score':score,'col_name_flag':True,'start_order':start_order,'end_order':end_order}
                             temp_imformation_list.append(diction)
-                        else:
+                        elif now_col_name == cur_text:
                             diction={'x':location_mid_x,'y':location_mid_y,'text':cur_text,'bounding_poly':location,'score':score,'col_name_flag':True,'start_order':start_order,'end_order':end_order}
                             temp_imformation_list.append(diction)
                 while(len(temp_imformation_list)!=0):
                     for diction in temp_imformation_list:
                         break_flag = False
                         end_order = diction['end_order']
+                        if end_order == None:
+                            end_order = -1
                         start_order = diction['start_order']
                         for compared_diction in temp_imformation_list:
                             compared_start_order = compared_diction['start_order']
                             compared_end_order = compared_diction['end_order']
+                            if compared_end_order == None:
+                                compared_end_order = -1
                             if diction == compared_diction:
                                 continue
                             if start_order == compared_start_order:
-                                if end_order ==None:
+                                if end_order ==-1:
                                     temp_imformation_list.remove(diction)
                                     break_flag = True
                                     break
-                                elif compared_end_order == None:
+                                elif compared_end_order == -1:
                                     temp_imformation_list.remove(compared_diction)
                                     break_flag = True
                                     break
@@ -220,6 +242,10 @@ def data_preprocess(results)-> List[dict]:#傳入圖片ocr辨識結果
                                         temp_imformation_list.remove(diction)
                                         break_flag = True
                                         break
+                            elif compared_start_order<=end_order and compared_start_order>=start_order:
+                                temp_imformation_list.remove(compared_diction)
+                                break_flag = True
+                                break
                         if break_flag:
                             break
                         else:
@@ -234,6 +260,7 @@ def data_preprocess(results)-> List[dict]:#傳入圖片ocr辨識結果
             match_flag = False
             for col_list_name in record_dict.keys():
                 col_list=record_dict[col_list_name]
+                col_list=[col_name.upper() for col_name in col_list]
                 for col_name in col_list:
                     if col_name == cur_text :
                         match_flag = True
@@ -243,34 +270,103 @@ def data_preprocess(results)-> List[dict]:#傳入圖片ocr辨識結果
                 diction={'x':location_mid_x,'y':location_mid_y,'text':cur_text,'bounding_poly':location,'score':score,'col_name_flag':False}
                 imformation_list.append(diction)
 
-                
-                    
-    #處理data
-    # for j in range(len(results)):
-    #     location=results[j][0] #文字方框位置
-    #     location_mid_x=int((location[0][0]+location[1][0])/2) #找出方框x中點
-    #     location_mid_y=int((location[1][1]+location[2][1])/2) #找出方框y中點
-    #     text=results[j][1][0].upper()#找出偵測文字
-    #     #text=text.replace(" ","")
-    #     score=results[j][1][1]#找出文字分數
 
-    #     #標點符號分字
-    #     split_flag=False
-    #     if text.find(' ') != -1:#可能要再改
-    #         split_flag=True
-    #         text_list=text.split(" ")
-    #         for text in text_list:
-    #             cur_text=text
-    #             if cur_text!='':
-    #                 diction={'x':location_mid_x,'y':location_mid_y,'text':cur_text,'bounding_poly':location,'score':score}
-    #                 imformation_list.append(diction)
-    #     if split_flag==False:    
-    #         diction={'x':location_mid_x,'y':location_mid_y,'text':text,'bounding_poly':location,'score':score}
-        # if diction['text']!='':
-        #     imformation_list.append(diction)
     imformation_list=sorted(imformation_list,key=lambda d:d['y'])#由y軸座標排序
+    new_imformation_list=[]
+    #檢查重複
+    for j in range(len(results)):
+        location=results[j][0] #文字方框位置
+        location_mid_x=int((location[0][0]+location[1][0])/2) #找出方框x中點
+        location_mid_y=int((location[1][1]+location[2][1])/2) #找出方框y中點
+        #找出相對應的imformation
+        compared_imformation_list=[]
+        compared_imformation_text_list=[]
+        for imformation in imformation_list:
+            if imformation['bounding_poly'] == location:
+                compared_imformation_text_list.append(imformation['text'])
+                compared_imformation_list.append(imformation)
+        #切字到最小單位
+        whole_text=results[j][1][0].upper()
+        if whole_text.find(' ') != -1:#可能要再改
+            split_flag=True
+            text_list=whole_text.split(" ")
+            #-1表未改變 0表一般字 1表col_data 單一 2 表col_data 連續
+            text_list_property=[-1 for i in range(len(text_list))]
+        else:
+            text_list=[whole_text]
+            text_list_property=[-1]
+        #先check 最長
+        for imformation in compared_imformation_list:
+            if imformation['col_name_flag'] == True:
+                #是 col_data 且 不只一個字
+                if imformation['text'].find(' ')!= -1:
+                    imformation_text_list=imformation['text'].split(" ")
+                    for i,text in enumerate(text_list):
+                        if text == imformation_text_list[0]:
+                            flag= True
+                            for j in range(len(imformation_text_list)):
+                                if imformation_text_list[j] == text_list[i+j] and text_list_property[i+j]==-1:
+                                    continue
+                                else:
+                                    flag = False
+                            if flag ==True:
+                                for j in range(len(imformation_text_list)):
+                                    text_list_property[i+j]=2
+        #check 單一 col_data
+        for imformation in compared_imformation_list:
+            if imformation['col_name_flag'] == True:
+                #是 col_data 且 不只一個字
+                if imformation['text'].find(' ')== -1:
+                    imformation_text = imformation['text']
+                    for i,text in enumerate(text_list):
+                        if text == imformation_text and text_list_property[i]==-1:
+                            text_list_property[i]=1
+        #check 非 col_data
+        for imformation in compared_imformation_list:
+            if imformation['col_name_flag'] == False:
+                #是 col_data 且 不只一個字
+                if imformation['text'].find(' ')== -1:
+                    imformation_text = imformation['text']
+                    for i,text in enumerate(text_list):
+                        if text == imformation_text and text_list_property[i]==-1:
+                            text_list_property[i]=0
+        #print(text_list_property)
+        skip_num = 0
+        for i in range(len(text_list_property)):
+            if skip_num!=0:
+                skip_num = skip_num-1
+                continue
+            if text_list_property[i] == 0:
+                cur_text = text_list[i]
+                score = 1
+                diction={'x':location_mid_x,'y':location_mid_y,'text':cur_text,'bounding_poly':location,'score':score,'col_name_flag':False}
+                new_imformation_list.append(diction)
+            elif text_list_property[i] == 1:
+                cur_text = text_list[i]
+                score = 1
+                diction={'x':location_mid_x,'y':location_mid_y,'text':cur_text,'bounding_poly':location,'score':score,'col_name_flag':True}
+                new_imformation_list.append(diction)
+            elif text_list_property[i] == 2:
+                cur_text =text_list[i]
+                while text_list_property[i] == 2 :
+                    i=i+1
+                    if i == len(text_list_property):
+                        break
+                    if text_list_property[i] == 2:
+                        skip_num=skip_num+1
+                        cur_text = cur_text+" "+text_list[i]
+                    else:
+                        i=i-1
+                        break
 
-    return imformation_list
+                score = 1
+                diction={'x':location_mid_x,'y':location_mid_y,'text':cur_text,'bounding_poly':location,'score':score,'col_name_flag':True}
+                new_imformation_list.append(diction)
+    #print(new_imformation_list)
+    new_imformation_list=sorted(new_imformation_list,key=lambda d:d['y'])
+                    
+
+    return new_imformation_list
 
 def barcode_data_preprocess(codes)-> List[dict]:#傳入barcode結果 
     diction_list=[]
@@ -336,22 +432,27 @@ def search_col_data_idx(idx,number,imformation_list):
     return possible_col_data_idx_list 
 def compare_col_data(imformation_list,col_name,config_list,config,col_data_idx_list,idx,idx_col_data):
     col_data_list=[]
+    col_data_correct_flag = False
     #col_data查找範圍
     now_data_idx = None
+    col_data = None
+    i = None
     if config != None:
         now_data_idx=config['col_data_idx']
-    if now_data_idx == None:
+    if now_data_idx != None:
         for data_idx in col_data_idx_list:
             if data_idx+idx<len(imformation_list):
                 col_data = imformation_list[idx+data_idx]['text']
                 diff_y = imformation_list[idx]['y']-imformation_list[idx+data_idx]['y']
+                diff_x = imformation_list[idx+data_idx]['x']-imformation_list[idx]['x']
                 col_name_flag = imformation_list[idx+data_idx]['col_name_flag']
                 if config != None:
                     now_data_idx=config['col_data_idx']
-                diction={'col_data':col_data,'diff_y':abs(diff_y),'idx':idx+data_idx,'col_name_flag':col_name_flag}
-                col_data_list.append(diction)
+                if diff_x>=0:
+                    diction={'col_data':col_data,'diff_y':abs(diff_y),'diff_x':diff_x,'idx':idx+data_idx,'col_name_flag':col_name_flag}
+                    col_data_list.append(diction)
             else:
-                break
+                continue
     else:
         num = 10
         col_data_idx_list = [i for i in range(-num,num,1)]
@@ -359,33 +460,21 @@ def compare_col_data(imformation_list,col_name,config_list,config,col_data_idx_l
             if data_idx+idx<len(imformation_list) and data_idx+idx>-1:
                 col_data = imformation_list[idx+data_idx]['text']
                 diff_y = imformation_list[idx]['y']-imformation_list[idx+data_idx]['y']
-                diff_x = imformation_list[idx]['x']-imformation_list[idx+data_idx]['x']
+                diff_x = imformation_list[idx+data_idx]['x']-imformation_list[idx]['x']
                 col_name_flag = imformation_list[idx+data_idx]['col_name_flag']
                 if config != None:
                     now_data_idx=config['col_data_idx']
-                diction={'col_data':col_data,'diff_y':abs(diff_y),'diff_x':abs(diff_x),'idx':idx+data_idx,'col_name_flag':col_name_flag}
-                col_data_list.append(diction)
+                if diff_x >=0:
+                    diction={'col_data':col_data,'diff_y':abs(diff_y),'diff_x':diff_x,'idx':idx+data_idx,'col_name_flag':col_name_flag}
+                    col_data_list.append(diction)
             else:
-                break
+                continue
     col_data_list = sorted(col_data_list,key=lambda d:d['diff_x'])
     col_data_list = sorted(col_data_list,key=lambda d:d['diff_y'])
-    # past_diff_y = None
-    # now_diff_y = None
-    # change_flag = True
-    # for i,col_data in enumerate(col_data_list):
-    #     if change_flag == True:
-    #         start = i
-    #         change_flag = False
-    #     past_diff_y = now_diff_y
-    #     now_diff_y = col_data['diff_y']
-    #     #如果y值一樣
-    #     if past_diff_y !=now_diff_y and past_diff_y != None :
-    #         change_flag =True
-    #         col_data_list[start:i] = sorted(col_data_list[start:i],key=lambda d:d['diff_x'])
-        
-
+    
     for i,col_dict in enumerate(col_data_list):
 
+        col_data_correct_flag = False
         col_data = col_dict['col_data']
         col_name_flag = col_dict['col_name_flag']
         data=col_name+":"+col_data
@@ -395,19 +484,26 @@ def compare_col_data(imformation_list,col_name,config_list,config,col_data_idx_l
             print(data)
             print("請問是否符合"+col_name+"格式?如果符合請輸入:T")
             check=input()
-            if check=="T":
+            if check.upper()=="T":
                 text_len=len(col_data) #儲存長度參數
                 text_type=type(col_data).__name__
                 if text_type=='str':
                     if col_data.isdigit():
                         text_type='int'
                 print(text_type)
+                record_list=['QTY','LOT','DATE','PN','COO']
+                text_type_dict={"LOT":"str",'PN':'str','COO':'str','DATE':'str'}
+                for name in text_type_dict.keys():
+                    if name == col_name:
+                        text_type = text_type_dict[name]
                 config_diction={'col':col_name,'text_length':text_len,'text_type':text_type,'col_name_idx':idx,'col_data_idx':col_data_idx_list[i],'col_data_idx_list':col_data_idx_list,'col_name_text':idx_col_data}
                 config=config_diction
                 config_list.append(config_diction)
+                col_data_correct_flag=True
                 break
         else:
             #有config
+            col_name = config['col']
             text_len=len(col_data)
             text_type=type(col_data).__name__
             if col_name_flag:
@@ -415,23 +511,55 @@ def compare_col_data(imformation_list,col_name,config_list,config,col_data_idx_l
             if text_type=='str':
                 if col_data.isdigit():
                     text_type='int'
+            record_list=['QTY','LOT','DATE','PN','COO']
+            text_type_dict={"LOT":"str",'PN':'str','COO':'str','DATE':'str'}
+            for name in text_type_dict.keys():
+                if name == col_name:
+                    text_type = text_type_dict[name]
+
+            if col_name == 'COO':#國家
+                country_list=['TW','CN','CHINA','MALAYSIA','TH'] #加入國家 作為檢索資料
+                for country in country_list:
+                    if country.upper() == col_data.upper():
+                        col_data_correct_flag = True
+                        break
+                if col_data_correct_flag:
+                    break
+                continue
             if text_type == config['text_type']:
+
+                if col_name == 'COO':#國家
+
+                    country_list=['TW','CN','CHINA','MALAYSIA']
+                    for country in country_list:
+                        if country.upper() == col_data.upper():
+                            col_data_correct_flag = True
+                            break
 
                 if text_type=='str':
                     if text_len != config['text_length']:
                         continue
                     else:
+                        col_data_correct_flag = True
                         break
+                elif text_type == 'int':
+                    col_data_correct_flag = True
+                    break
+
             else:
                 continue
-            break
-
+    if col_data_correct_flag == False:
+        col_data=None
+        i=None
     return col_data,i
             
 def first_compare(imformation_list,config_path,image_path)-> Union[List[dict],List[dict]]:
     img=cv2.imread(image_path)
     record_list=['QTY','LOT','DATE','PN','COO'] #紀錄事項會從config載入
-    record_dict={'QTY':["Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty", "Qty.", "Quantity", "Q’ ty", "Q’TY", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT ID", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot", "Lot Code", "Lot ID", "LOTNO", "Lot No", "Lot No.", "Lot Number", "LotNo", "MLOT"],'DATE':["9D", "D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Date", "Date Code", "Date code", "DateCode", "Seal Date"],'PN':["1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part", "Part No", "Part No.", "Part Number", "PartNo", "Product Id", "Product id", "SPN"],'COO':["4L", "COO", "Assembled In", "Assembly Location", "C.O.O.","COUNTRY OF ORIGIN", "CoO", "Coo", "Country of Origin", "Country of origin", "MADE IN", "Made in", "Origin of"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    record_dict={'QTY':['OTY',"Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty.", "Q’ ty", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["Bulk ID","1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot Code", "Lot ID", "LOTNO", "Lot No.", "MLOT"],'DATE':["Trace code1","Trace codes","9D", "D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Seal Date"],'PN':["Type","1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part No.", "PartNo", "SPN"],'COO':["4L","Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "MADE IN", "Origin of"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    for col_list_name in record_dict.keys():
+        col_list = record_dict[col_list_name]
+        record_dict[col_list_name] = [col_name.upper() for col_name in col_list]
     result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[]} #紀錄比對事項
     result_list=[]
     match_text_list=[]
@@ -440,11 +568,14 @@ def first_compare(imformation_list,config_path,image_path)-> Union[List[dict],Li
     for i,imformation in enumerate(imformation_list):
         match_text_flag=False
         text=imformation['text'] #找出目前的文字
+        if text =="TRACE CODE1":
+            print("hi")
         max_score_list=[]
         for col_list_name in record_dict.keys():#使用預設col_list_name查找圖片中相對應的col
             max_score=0
             offset=0
             col_list=record_dict[col_list_name]
+            col_list=[col_name.upper() for col_name in col_list]
             #需再新增紀錄本類型圖片所使用的col名稱 降低失誤率
             #加入match_text機制
             for col_name in col_list:
@@ -456,28 +587,9 @@ def first_compare(imformation_list,config_path,image_path)-> Union[List[dict],Li
                 if score>max_score:
                     max_score=score
                     if max_score==100:
-                        break
-                #match_text機制
-                #如match_text後有文字才新增
-                    
-            #     if match_text==col_name and match_text!=text[longest_match.b:]:
-            #         match_text_flag=True
-            #         #print(text[longest_match.b+longest_match.size:])
-            #         offset=offset+1
-            #         new_text=text[(longest_match.b+longest_match.size):]
-            #         #判斷是否有因":"分詞，有的話代表有贅詞
-            #         if i!=0:
-            #             if(imformation_list[i-1]['x']==imformation_list[i]['x'] and imformation_list[i-1]['y']==imformation_list[i]['y']):
-            #                 new_text=imformation_list[i-1]['text']
-            #         new_information_dict={'text':new_text,'idx':i,'col':col_list_name}
-            #         match_text_list.append(new_information_dict)
-            #         break
-            #     #match_text無新增 但文字符合col_name 高度正相關
-            #     if match_text==col_name:
-            #         max_score=2
-            # if match_text_flag:
-            #     break
-                    
+                        max_score_diction={'max_score':max_score,'col':col_list_name}
+                        max_score_list.append(max_score_diction)
+                        break                  
             if max_score>80 and match_text_flag==False: #如果分數達標 認定為col
                 max_score_diction={'max_score':max_score,'col':col_list_name}#紀錄max_score分數
                 max_score_list.append(max_score_diction)
@@ -547,7 +659,7 @@ def first_compare(imformation_list,config_path,image_path)-> Union[List[dict],Li
             #print("欄位y座標:"+str(idx_col_y))
             print("如果符合請輸入:T")
             check=input()
-            if check!="T":
+            if check.upper()!="T":
                 continue
 
             col_data_idx_list=search_col_data_idx(idx,20,imformation_list) #中間為查找data之範圍
@@ -572,7 +684,18 @@ def first_compare(imformation_list,config_path,image_path)-> Union[List[dict],Li
             print("欄位idx:"+str(col_data_idx_list[i]+idx))
             diction={col_name:col_data,"location":col_data_idx_list[i],"bounding_poly":bounding_poly,'label_id':0}
             result_list.append(diction)
-
+    #確認是否有遺漏
+    for col_list_name in record_list:
+        exist_flag = False
+        for config in config_list:
+            if config['col'] == col_list_name:
+                exist_flag = True
+                break
+        if exist_flag == False:
+            print("請問是否需要加入"+str(col_list_name)+"? 如果需要請輸入:T")
+            check=input()
+            if check.upper() =="T":
+                print("開始找") #城市
     with open(os.path.join(config_path, "config.json"), "w") as f:
         json.dump({"config": config_list}, f)
     #加入第二種審核模式(提高準確率) 想法:word_result
@@ -582,8 +705,11 @@ def first_compare(imformation_list,config_path,image_path)-> Union[List[dict],Li
 def normal_compare(imformation_list,config,image_path)-> Union[List[dict],List[dict]]:
 
     img=cv2.imread(image_path)
-    record_list=['QTY','lot','Date'] #紀錄事項會從config載入
-    record_dict={'QTY':["Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty", "Qty.", "Quantity", "Q’ ty", "Q’TY", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT ID", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot", "Lot Code", "Lot ID", "LOTNO", "Lot No", "Lot No.", "Lot Number", "LotNo", "MLOT"],'DATE':["9D", "D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Date", "Date Code", "Date code", "DateCode", "Seal Date"],'PN':["1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part", "Part No", "Part No.", "Part Number", "PartNo", "Product Id", "Product id", "SPN"],'COO':["4L", "COO", "Assembled In", "Assembly Location", "C.O.O.", "COUNTRY OF ORIGIN", "CoO", "Coo", "Country of Origin", "Country of origin", "MADE IN", "Made in", "Origin of"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    record_list=['QTY','LOT','DATE','PN','COO'] #紀錄事項會從config載入
+    record_dict={'QTY':['OTY',"Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty.", "Q’ ty", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["Bulk ID","1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot Code", "Lot ID", "LOTNO", "Lot No.", "MLOT"],'DATE':["Trace code1","Trace codes","9D", "D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Seal Date"],'PN':["Type","1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part No.", "PartNo", "SPN"],'COO':["4L","Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "MADE IN", "Origin of"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    for col_list_name in record_dict.keys():
+        col_list = record_dict[col_list_name]
+        record_dict[col_list_name] = [col_name.upper() for col_name in col_list]
     result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[]} #紀錄比對事項
     result_list=[]
     match_text_list=[]
@@ -682,83 +808,25 @@ def normal_compare(imformation_list,config,image_path)-> Union[List[dict],List[d
             if now_idx>max_idx:
                 max_idx=now_idx
 
-            col_data_list=[]
-
-            for data_idx in now_data_idx_list:
-                # 將config中data_idx_list對應到的data取出
-                if data_idx+now_idx<len(imformation_list):
-                    col_data = imformation_list[now_idx+data_idx]['text']
-                    diff_y = imformation_list[now_idx]['y']-imformation_list[now_idx+data_idx]['y']
-                    col_name_flag = imformation_list[now_idx+data_idx]['col_name_flag']
-                    diction={'col_data':col_data,'diff_y':abs(diff_y),'col_name_flag':col_name_flag}
-                    col_data_list.append(diction)
-                else:
-                    continue
 
             col_data,i = compare_col_data(imformation_list,now_col_name,config_list,saved_config,now_data_idx_list,now_idx,record_col_name)
             #now_idx+i為col_data now_idx為col_name
-            col_name_imformation = imformation_list[now_idx]
-            col_y = col_name_imformation['y']
-            bounding_poly=col_name_imformation['bounding_poly']            
-            print("欄位資料:"+str(now_col_name)+":"+str(col_data))
-            #print("欄位y位置:"+str(col_y))
-            diction={now_col_name:col_data,"location":col_y,"bounding_poly":bounding_poly,"label_id":label_id}
-            result_list.append(diction)
+            if col_data != None:
+                data_idx = now_idx+i
+                if data_idx>max_idx:
+                    max_idx=data_idx
+                col_name_imformation = imformation_list[now_idx]
+                col_y = col_name_imformation['y']
+                bounding_poly=col_name_imformation['bounding_poly']            
+                print("欄位資料:"+str(now_col_name)+":"+str(col_data))
+                #print("欄位y位置:"+str(col_y))
+                diction={now_col_name:col_data,"location":col_y,"bounding_poly":bounding_poly,"label_id":label_id}
+                
+                result_list.append(diction)
 
         imformation_list=imformation_list[max_idx+1:]
         if max_idx == -1:
             break
-
-    #result_grouping(result_list,img)
-        
-    #def word_grouping():
-    #match的不使用config限制 暫定
-    #可能加入判斷後 再確認鄰近information判別是否有符合之資訊
-    # for match_diction in match_text_list:
-    #     config=None
-    #     col_name=match_diction['col']
-    #     for saved_config in config_list:
-    #         if saved_config['col']==col_name:
-    #             config=saved_config
-    #     #載入資訊
-    #     idx=match_diction['idx']
-    #     col_information=imformation_list[idx]
-    #     col_y=col_information['y']
-    #     col_data=match_diction['text']
-    #     data=col_name+":"+col_data
-    #     if config==None:
-    #         print(data)
-    #         print("請問是否符合"+col_name+"格式?如果符合請輸入:T")
-    #         check=input()
-    #         if check=="T":
-    #             text_len=len(col_data) #儲存長度參數
-    #             #print(type(col_data))
-    #             text_type=type(col_data).__name__
-    #             if text_type=='str':
-    #                 if col_data.isdigit():
-    #                     text_type='int'
-    #             config_diction={'col':col_name,'text_length':text_len,'text_type':text_type}
-    #             config=config_diction
-    #             config_list.append(config_diction)
-    #         else:
-    #             match_text_list.remove(match_diction)
-    #             continue
-    #     else:
-    #         text_len=len(col_data)
-    #         text_type=type(col_data).__name__
-    #         if text_type=='str':
-    #             if col_data.isdigit():
-    #                 text_type='int'
-    #         if text_type == config['text_type']:
-    #             if text_type=='str':
-    #                 if text_len != config['text_length']:
-    #                     continue
-    #         else:
-    #             continue
-    #     print("欄位資料:"+data)
-    #     print("欄位y位置:"+str(col_y))
-    #     diction={col_name:col_data,"location":col_y}
-    #     result_list.append(diction)
 
     #加入第二種審核模式用於標點符號沒偵測到
     return result_list,match_text_list
