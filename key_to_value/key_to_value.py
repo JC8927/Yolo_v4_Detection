@@ -696,6 +696,12 @@ def first_compare(imformation_list,config_path,image_path)-> Union[List[dict],Li
             check=input()
             if check.upper() =="T":
                 print("開始找") #城市
+                # print("請輸入"+str(col_list_name)+"長度")
+                # text_length=int(input()) #給定長度搜尋
+                # for imformation in imformation_list:
+                #     config_diction={'col':col_list_name,'text_length':text_length,'text_type':'str','col_name_idx':-1,'col_data_idx':col_data_idx_list[i],'col_data_idx_list':col_data_idx_list,'col_name_text':''}
+                #     text = imformation['text']
+
     with open(os.path.join(config_path, "config.json"), "w") as f:
         json.dump({"config": config_list}, f)
     #加入第二種審核模式(提高準確率) 想法:word_result
