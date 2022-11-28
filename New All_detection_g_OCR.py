@@ -1188,7 +1188,6 @@ class InputFrame(Frame):  # 繼承Frame類
         Label(self, text='即時錄影偵測: ').pack()
         Button(self, text='開始偵測', command=self.real_time_obj_detection).pack()
         Label(self, text='本地相片偵測: ').pack()
-        Label(self, text='本地相片偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_photo_obj_detection).pack()
         Label(self, text='雲端相片偵測: ').pack()
         Button(self, text='開始偵測', command=self.photo_obj_detection_cloud).pack()
@@ -1212,7 +1211,7 @@ class InputFrame(Frame):  # 繼承Frame類
         folder_name = self.folder_name.get().split(':')[1]
         root.destroy()
         photo_obj_detection(model_path, GPU_ratio=GPU_ratio, toCSV=True,folder_path=folder_name)
-
+        
     def photo_obj_detection_cloud(self):
         print('photo_obj_detection_cloud')
         self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
@@ -1340,10 +1339,11 @@ class ResultFrame(Frame):  # 繼承Frame類
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     GPU_ratio = 0.8
-    root = Tk() 
-    root.title('Code reader') 
-    LoginPage(root) 
-    root.mainloop()
+    while True:
+        root = Tk() 
+        root.title('Code reader') 
+        LoginPage(root) 
+        root.mainloop()
     #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     #photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     #photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True)
