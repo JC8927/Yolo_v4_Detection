@@ -939,9 +939,11 @@ def photo_obj_detection_cloud(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
     global os
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
     print("yolo initial done")
+
+
     mode_flag = -1
     # 資料夾裡面每個檔案
-    dir_path = "C:/Users/shiii/我的雲端硬碟/code_reader_photo_detect/"
+    dir_path = "C:/Users/shiii/我的雲端硬碟/photo_obj_detection_cloud_folder/"
     dir_path = dir_path + folder_path + "/"
     pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
     # print("請選擇模式:1.單一label 2. multi label")
@@ -953,7 +955,9 @@ def photo_obj_detection_cloud(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
             continue
         # 讀取拍攝好的照片(result_pic_orig.jpg)
         img_path = os.path.join('.', path)
-        img = cv2.imread(img_path)
+        print(img_path)
+        img = mpimg.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # 做sha_crap前處理
         if sha_crap:
