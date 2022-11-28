@@ -933,23 +933,27 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
     cv2.destroyAllWindows()
     print("done")
 
-def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retinex=False):
+
+def photo_obj_detection_cloud(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False, folder_path=""):
     # ----YOLO v4 init
     global os
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
-    #print("yolo initial done")
-
+    print("yolo initial done")
+    mode_flag = -1
     # 資料夾裡面每個檔案
-    pathlist = sorted(Path(r"C:/Users/shiii/我的雲端硬碟/code_reader_photo_detect/").glob('*'))  # 用哪個資料夾裡的檔案
-
+    dir_path = "C:/Users/shiii/我的雲端硬碟/code_reader_photo_detect/"
+    dir_path = dir_path + folder_path + "/"
+    pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
+    # print("請選擇模式:1.單一label 2. multi label")
+    # mode_flag=input()
     for path in pathlist:  # path: 每張檔案的路徑
         # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
-        start = time.time()
-
+        sub_name = path.name[-4:]
+        if path.name[-4:] != ".jpg":
+            continue
         # 讀取拍攝好的照片(result_pic_orig.jpg)
         img_path = os.path.join('.', path)
-        print(img_path)
-        img = mpimg.imread(img_path)
+        img = cv2.imread(img_path)
 
         # 做sha_crap前處理
         if sha_crap:
@@ -964,7 +968,7 @@ def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False
 
         # googleOCR辨識
         image_path = r'./result_dir/result_pic_processing.jpg'
-        ocr_result = google_detect_text(image_path)
+        print("目前照片:" + str(img_path))
 
         # 輸出googleOCR辨識結果
         result_path = './result_dir/result_txt.txt'
@@ -973,20 +977,41 @@ def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False
         f = open(result_path, 'w', encoding='utf-8')
         fc = open(decode_result_path, 'w', encoding='utf-8')
 
+        para_ocr_result, word_ocr_result = google_detect_text(image_path)
+        start = time.time()
+        imformation_list = key_to_value.data_preprocess(para_ocr_result)
+        config = None
+        save_config_path = dir_path
+        config_path = dir_path + "config.json"
+        if os.path.isfile(config_path):
+            with open(config_path) as f:
+                config = json.load(f)['config']
+        if config == None:
+            result_list, match_text_list = key_to_value.first_compare(imformation_list, save_config_path, image_path)
+        else:
+            result_list, match_text_list = key_to_value.normal_compare(imformation_list, config, image_path)
+
+        # result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
+
         # 讀取zbar解碼結果
         decode_list = []
 
         # dbr decode
-        dbr_decode_res = dbr_decode(image_path,False)
-
+        dbr_decode_res = dbr_decode(image_path, False)
+        barcode_list = [barcode['text'] for barcode in dbr_decode_res]
+        # barcode_list = key_to_value.barcode_data_preprocess()
+        combined_result = key_to_value.barcode_compare_ocr(result_list, dbr_decode_res)
+        # key_to_value.draw_final_pic(combined_result,image_path)
         # 整合zbar與dbr decode的結果
-        for dbr_result in dbr_decode_res:
+        for dbr_result in barcode_list:
             decode_list.append(dbr_result)
 
         # 印出Google OCR結果
         # print("OCR Text Part:\n")
-        for res in ocr_result:
-            f.write(res + '\n')
+        ocr_text = []
+        for res in para_ocr_result:
+            ocr_text.append(res[1][0])
+            # f.write(res[1][0] + '\n')
             # print(res)
 
         # 印出Barcode/QRCode內容
@@ -997,8 +1022,8 @@ def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False
 
         # OCR轉CSV
         if toCSV:
-            toCSV_list = toCSV_processing(ocr_result)
-            print(f"toCSV_list{toCSV_list}")
+            toCSV_list = toCSV_processing(ocr_text)
+            # print(f"toCSV_list{toCSV_list}")
 
         # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
         end = time.time()
@@ -1008,13 +1033,21 @@ def photo_obj_detection_cloud(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False
 
         #####################################################
         # 印出UI
-        #ui_generate(toCSV_list, exe_time, decode_list)
+
+        # img = cv2.imread(image_path)
+        # img = img_resize(img)
+        # cv2.namedWindow("img", cv2.WINDOW_NORMAL)
+        # crop_y = int(1*img.shape[0])
+        # crop_x = int(1*img.shape[1])
+        # cv2.resizeWindow("img",crop_x,crop_y)
+        # cv2.imshow("img",img)
+        cv2.waitKey(1)
+        ui_generate(result_list, exe_time, combined_result, image_path)
 
         # ----release
         decode_list = []
         f.close()
         fc.close()
-
 
     #####################################################
     # ----release
@@ -1384,8 +1417,8 @@ class InputFrame(Frame):  # 繼承Frame類
         # Button(self, text='開始偵測', command=self.real_time_obj_detection).pack()
         Label(self, text='本地相片偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_photo_obj_detection).pack()
-        # Label(self, text='雲端相片偵測: ').pack()
-        # Button(self, text='開始偵測', command=self.photo_obj_detection_cloud).pack()
+        Label(self, text='雲端相片偵測: ').pack()
+        Button(self, text='開始偵測', command=self.photo_obj_detection_cloud).pack()
         Label(self, text='跨面標籤偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_cross_photo_obj_detection).pack()
         Label(self, text='密集條碼偵測: ').pack()
@@ -1418,7 +1451,7 @@ class InputFrame(Frame):  # 繼承Frame類
         self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
         folder_name = self.folder_name.get().split(':')[1]
         root.destroy()
-#         photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True,folder_name)
+        photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True,folder_path=folder_name)
 
     def UI_cross_photo_obj_detection(self):
         print('cross_photo_obj_detection')
@@ -1434,7 +1467,6 @@ class InputFrame(Frame):  # 繼承Frame類
         root.destroy()
         multi_code_detection(model_path, GPU_ratio=GPU_ratio, toCSV=True,folder_path=folder_name)
 
-
 class RecordFrame(Frame):  # 繼承Frame類
     def __init__(self, master=None):
         Frame.__init__(self, master)
@@ -1444,7 +1476,6 @@ class RecordFrame(Frame):  # 繼承Frame類
 
     def createPage(self):
         Label(self, text='查詢介面').pack()
-
 
 class ResultFrame(Frame):  # 繼承Frame類
     def __init__(self, master=None, key_value_dict=[], exe_time=0, combined_result=[]):
