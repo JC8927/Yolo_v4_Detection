@@ -1213,7 +1213,8 @@ class InputFrame(Frame):  # 繼承Frame類
         self.root = master  # 定義內部變數root
         self.folder_name = StringVar()                          
         self.folder_name.set('')
-        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','siliconlab_box_4','skywork_box','skywork_disk','skywork_disk_1','skywork_disk_2','STM_disk','melexis_disk','multi_code'])
+        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','siliconlab_box_4','skywork_box','skywork_disk','skywork_disk_1','skywork_disk_2','STM_disk','melexis_disk','multi_code','test'])
+
         self.createPage()
 
     def createPage(self):
