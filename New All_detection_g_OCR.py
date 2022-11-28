@@ -342,7 +342,7 @@ def compare(str1, str2):
     else:
         return False
 
-def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
+def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',img_path_2=''):
     """
     input:
         key_value_dict: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
@@ -422,6 +422,36 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
     # 設定"OCR to CSV 結果"描述
     label = Label(text="RESULT to CSV 結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
     label.pack()
+
+    if img_path_2 != '':
+        resize_factor = 150
+    else:
+        resize_factor = 300
+    # 顯示當前圖片
+    img_open = Image.open(img_path)
+    img_open_width, img_open_height = img_open.size
+    # 自動調整圖片大小
+
+    if img_open_width / img_open_height >= 1:
+        img_open = img_open.resize((int(img_open_width / img_open_height * resize_factor), resize_factor))
+
+    else:
+        img_open = img_open.resize((resize_factor, int(img_open_height / img_open_width * resize_factor)))
+    img_png = ImageTk.PhotoImage(img_open)
+    label_img = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png).pack()
+
+    if img_path_2!='':
+        # 顯示當前圖片
+        img_open_2 = Image.open(img_path_2)
+        img_open_width_2, img_open_height_2 = img_open_2.size
+        # 自動調整圖片大小
+        if img_open_width_2 / img_open_height_2 >= 1:
+            img_open_2 = img_open_2.resize((int(img_open_width_2 / img_open_height_2 * resize_factor), resize_factor))
+
+        else:
+            img_open_2 = img_open_2.resize((resize_factor, int(img_open_height_2 / img_open_width_2 * resize_factor)))
+        img_png_2= ImageTk.PhotoImage(img_open_2)
+        label_img_2 = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png_2).pack()
 
     # 設定key&value對應表格
     tree = ttk.Treeview(window, height=len(label_data_list), padding=(10, 5, 20, 20), columns=('PN', 'Date', 'QTY', 'LOT', 'COO'))
@@ -852,15 +882,15 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         #####################################################
         # 印出UI
 
-        img = cv2.imread(image_path)
-        img = img_resize(img)
-        cv2.namedWindow("img", cv2.WINDOW_NORMAL)
-        crop_y = int(1*img.shape[0])
-        crop_x = int(1*img.shape[1])
-        cv2.resizeWindow("img",crop_x,crop_y)
-        cv2.imshow("img",img)
+        # img = cv2.imread(image_path)
+        # img = img_resize(img)
+        # cv2.namedWindow("img", cv2.WINDOW_NORMAL)
+        # crop_y = int(1*img.shape[0])
+        # crop_x = int(1*img.shape[1])
+        # cv2.resizeWindow("img",crop_x,crop_y)
+        # cv2.imshow("img",img)
         cv2.waitKey(1)
-        ui_generate(result_list, exe_time, combined_result)
+        ui_generate(result_list, exe_time, combined_result,image_path)
 
         # ----release
         decode_list = []
@@ -1065,18 +1095,18 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
             # 印出UI
             first_img = img_resize(first_img)
             second_img = img_resize(second_img)
-            cv2.namedWindow("first_img", cv2.WINDOW_NORMAL)
-            crop_y = int(1*first_img.shape[0])
-            crop_x = int(1*first_img.shape[1])
-            cv2.resizeWindow("first_img",crop_x,crop_y)
-            cv2.imshow("first_img",first_img)
-            cv2.namedWindow("second_img", cv2.WINDOW_NORMAL)
-            crop_y = int(1*second_img.shape[0])
-            crop_x = int(1*second_img.shape[1])
-            cv2.resizeWindow("second_img",crop_x,crop_y)
-            cv2.imshow("second_img",second_img)
+            # cv2.namedWindow("first_img", cv2.WINDOW_NORMAL)
+            # crop_y = int(1*first_img.shape[0])
+            # crop_x = int(1*first_img.shape[1])
+            # cv2.resizeWindow("first_img",crop_x,crop_y)
+            # cv2.imshow("first_img",first_img)
+            # cv2.namedWindow("second_img", cv2.WINDOW_NORMAL)
+            # crop_y = int(1*second_img.shape[0])
+            # crop_x = int(1*second_img.shape[1])
+            # cv2.resizeWindow("second_img",crop_x,crop_y)
+            # cv2.imshow("second_img",second_img)
             cv2.waitKey(1)
-            ui_generate(result_list, exe_time, combined_result)
+            ui_generate(result_list, exe_time, combined_result,first_img_path,second_img_path)
 
             # ----release
             decode_list = []
