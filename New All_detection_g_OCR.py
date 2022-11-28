@@ -54,7 +54,7 @@ print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
 #pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # 設置GOOGLE OCR API位置
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-4-555d8b63842d.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-5-63f024a409ed.json"
 
 # 建立BarcodeReader
 BarcodeReader.init_license("t0076oQAAADLDNLLexPCL5vfn2vtVNtjVvYQzSHAmkcuhnLZhwoyd50yzV5xlNT6PYgMhdBsXn72R4cNUcOLv82zt0jv+NFJb2RQn/4Yi6Q==")
@@ -342,7 +342,7 @@ def compare(str1, str2):
     else:
         return False
 
-def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
+def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',img_path_2=''):
     """
     input:
         key_value_dict: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
@@ -422,6 +422,36 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[]):
     # 設定"OCR to CSV 結果"描述
     label = Label(text="RESULT to CSV 結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
     label.pack()
+
+    if img_path_2 != '':
+        resize_factor = 150
+    else:
+        resize_factor = 300
+    # 顯示當前圖片
+    img_open = Image.open(img_path)
+    img_open_width, img_open_height = img_open.size
+    # 自動調整圖片大小
+
+    if img_open_width / img_open_height >= 1:
+        img_open = img_open.resize((int(img_open_width / img_open_height * resize_factor), resize_factor))
+
+    else:
+        img_open = img_open.resize((resize_factor, int(img_open_height / img_open_width * resize_factor)))
+    img_png = ImageTk.PhotoImage(img_open)
+    label_img = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png).pack()
+
+    if img_path_2!='':
+        # 顯示當前圖片
+        img_open_2 = Image.open(img_path_2)
+        img_open_width_2, img_open_height_2 = img_open_2.size
+        # 自動調整圖片大小
+        if img_open_width_2 / img_open_height_2 >= 1:
+            img_open_2 = img_open_2.resize((int(img_open_width_2 / img_open_height_2 * resize_factor), resize_factor))
+
+        else:
+            img_open_2 = img_open_2.resize((resize_factor, int(img_open_height_2 / img_open_width_2 * resize_factor)))
+        img_png_2= ImageTk.PhotoImage(img_open_2)
+        label_img_2 = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png_2).pack()
 
     # 設定key&value對應表格
     tree = ttk.Treeview(window, height=len(label_data_list), padding=(10, 5, 20, 20), columns=('PN', 'Date', 'QTY', 'LOT', 'COO'))
@@ -852,15 +882,15 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         #####################################################
         # 印出UI
 
-        img = cv2.imread(image_path)
-        img = img_resize(img)
-        cv2.namedWindow("img", cv2.WINDOW_NORMAL)
-        crop_y = int(1*img.shape[0])
-        crop_x = int(1*img.shape[1])
-        cv2.resizeWindow("img",crop_x,crop_y)
-        cv2.imshow("img",img)
+        # img = cv2.imread(image_path)
+        # img = img_resize(img)
+        # cv2.namedWindow("img", cv2.WINDOW_NORMAL)
+        # crop_y = int(1*img.shape[0])
+        # crop_x = int(1*img.shape[1])
+        # cv2.resizeWindow("img",crop_x,crop_y)
+        # cv2.imshow("img",img)
         cv2.waitKey(1)
-        ui_generate(result_list, exe_time, combined_result)
+        ui_generate(result_list, exe_time, combined_result,image_path)
 
         # ----release
         decode_list = []
@@ -1065,18 +1095,18 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
             # 印出UI
             first_img = img_resize(first_img)
             second_img = img_resize(second_img)
-            cv2.namedWindow("first_img", cv2.WINDOW_NORMAL)
-            crop_y = int(1*first_img.shape[0])
-            crop_x = int(1*first_img.shape[1])
-            cv2.resizeWindow("first_img",crop_x,crop_y)
-            cv2.imshow("first_img",first_img)
-            cv2.namedWindow("second_img", cv2.WINDOW_NORMAL)
-            crop_y = int(1*second_img.shape[0])
-            crop_x = int(1*second_img.shape[1])
-            cv2.resizeWindow("second_img",crop_x,crop_y)
-            cv2.imshow("second_img",second_img)
+            # cv2.namedWindow("first_img", cv2.WINDOW_NORMAL)
+            # crop_y = int(1*first_img.shape[0])
+            # crop_x = int(1*first_img.shape[1])
+            # cv2.resizeWindow("first_img",crop_x,crop_y)
+            # cv2.imshow("first_img",first_img)
+            # cv2.namedWindow("second_img", cv2.WINDOW_NORMAL)
+            # crop_y = int(1*second_img.shape[0])
+            # crop_x = int(1*second_img.shape[1])
+            # cv2.resizeWindow("second_img",crop_x,crop_y)
+            # cv2.imshow("second_img",second_img)
             cv2.waitKey(1)
-            ui_generate(result_list, exe_time, combined_result)
+            ui_generate(result_list, exe_time, combined_result,first_img_path,second_img_path)
 
             # ----release
             decode_list = []
@@ -1121,7 +1151,7 @@ class LoginPage(object):
         Label(self.page, text='密碼: ').pack()
         Entry(self.page, textvariable=self.password, show='*').pack()
         Button(self.page, text='登入', command=self.loginCheck).pack()
-        Button(self.page, text='退出', command=self.page.quit).pack()
+        Button(self.page, text='退出', command=self.quit_program).pack()
 
     def loginCheck(self):
         name = self.username.get()
@@ -1133,6 +1163,10 @@ class LoginPage(object):
             showinfo(title='錯誤', message='賬號或密碼錯誤！')
 
         # 設計主程式頁面
+
+    def quit_program(self):
+        sys.exit(0)
+
 
 
 class MainPage(object):
@@ -1179,7 +1213,8 @@ class InputFrame(Frame):  # 繼承Frame類
         self.root = master  # 定義內部變數root
         self.folder_name = StringVar()                          
         self.folder_name.set('')
-        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','skywork_box','skywork_disk','STM_disk','melexis_disk','multi_code'])
+        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','siliconlab_box_4','skywork_box','skywork_disk','skywork_disk_1','skywork_disk_2','STM_disk','melexis_disk','multi_code','test'])
+
         self.createPage()
 
     def createPage(self):
@@ -1339,10 +1374,18 @@ class ResultFrame(Frame):  # 繼承Frame類
 if __name__ == "__main__":
     model_path = r".\yolov4-obj_best_416.ckpt.meta"
     GPU_ratio = 0.8
+<<<<<<< HEAD
     while True:
         root = Tk() 
         root.title('Code reader') 
         LoginPage(root) 
+=======
+
+    while True:
+        root = Tk()
+        root.title('Code reader')
+        LoginPage(root)
+>>>>>>> a70c237bca71fe6aec29d21a7cf3709232bef087
         root.mainloop()
     #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
     #photo_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True)
