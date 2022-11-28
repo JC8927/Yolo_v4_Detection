@@ -411,11 +411,21 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
     # print()
     window = Tk()
 
+    # 顯示當前圖片
+    img_open = Image.open(img_path)
+    img_open_width, img_open_height = img_open.size
+
     # 如果要印出decode結果，則加長UI
-    if combined_result:
-        height = 650
+    if img_open_width / img_open_height <= 1:
+        height = 750
+        resize_factor = 350
     else:
-        height = 350
+        height = 650
+        resize_factor = 300
+    if img_path_2 != '':
+        resize_factor = 200
+        height = 750
+
     screenwidth = window.winfo_screenwidth()  # 屏幕宽度
     screenheight = window.winfo_screenheight()  # 屏幕高度
     width = 1000
@@ -438,20 +448,16 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
     label = Label(text="RESULT to CSV 結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
     label.pack()
 
-    if img_path_2 != '':
-        resize_factor = 150
-    else:
-        resize_factor = 300
-    # 顯示當前圖片
-    img_open = Image.open(img_path)
-    img_open_width, img_open_height = img_open.size
+
+
     # 自動調整圖片大小
 
     if img_open_width / img_open_height >= 1:
         img_open = img_open.resize((int(img_open_width / img_open_height * resize_factor), resize_factor))
 
     else:
-        img_open = img_open.resize((resize_factor, int(img_open_height / img_open_width * resize_factor)))
+        # img_open = img_open.resize((resize_factor, int(img_open_height / img_open_width * resize_factor)))
+        img_open = img_open.resize((int(img_open_width / img_open_height * resize_factor), resize_factor))
     img_png = ImageTk.PhotoImage(img_open)
     label_img = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png).pack()
 
@@ -464,7 +470,8 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
             img_open_2 = img_open_2.resize((int(img_open_width_2 / img_open_height_2 * resize_factor), resize_factor))
 
         else:
-            img_open_2 = img_open_2.resize((resize_factor, int(img_open_height_2 / img_open_width_2 * resize_factor)))
+            img_open_2 = img_open_2.resize((int(img_open_width_2 / img_open_height_2 * resize_factor), resize_factor))
+            # img_open_2 = img_open_2.resize((resize_factor, int(img_open_height_2 / img_open_width_2 * resize_factor)))
         img_png_2= ImageTk.PhotoImage(img_open_2)
         label_img_2 = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png_2).pack()
 
@@ -520,8 +527,13 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
     # 顯示辨識時間
     label = Label(text=f"執行時間: {exe_time:.2} (s)", font=("Arial", 14, "bold"), padx=5, pady=25, fg="black")
     label.pack()
-    #     window.after(3000, window.destroy)
+
+    Button(text='退出', command=quit_program).pack()
+
     window.mainloop()
+
+def quit_program():
+    sys.exit(0)
 
 def toCSV_processing(ocr_result):
 
@@ -1286,7 +1298,7 @@ import cv2
 class LoginPage(object):
     def __init__(self, master=None):
         self.root = master  # 定義內部變數root
-        self.root.geometry('%dx%d' % (300, 300))  # 設定視窗大小
+        self.root.geometry('%dx%d' % (400, 400))  # 設定視窗大小
         self.username = StringVar()
         self.username.set('admin')
         self.password = StringVar('')
@@ -1319,12 +1331,10 @@ class LoginPage(object):
     def quit_program(self):
         sys.exit(0)
 
-
-
 class MainPage(object):
     def __init__(self, master=None):
         self.root = master  # 定義內部變數root
-        self.root.geometry('%dx%d' % (300, 350))  # 設定視窗大小
+        self.root.geometry('%dx%d' % (400, 400))  # 設定視窗大小
         self.createPage()
 
     def createPage(self):
@@ -1358,7 +1368,6 @@ class MainPage(object):
 
     # 設計功能選擇頁面
 
-
 class InputFrame(Frame):  # 繼承Frame類
     def __init__(self, master=None):
         Frame.__init__(self, master)
@@ -1366,33 +1375,36 @@ class InputFrame(Frame):  # 繼承Frame類
         self.folder_name = StringVar()                          
         self.folder_name.set('')
         self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','siliconlab_box_4','skywork_box','skywork_disk','skywork_disk_1','skywork_disk_2','STM_disk','melexis_disk','multi_code','test'])
-
         self.createPage()
 
     def createPage(self):
         Label(self, text='Code Reader 功能選擇').pack()
         Label(self).pack()
-        Label(self, text='即時錄影偵測: ').pack()
-        Button(self, text='開始偵測', command=self.real_time_obj_detection).pack()
+        # Label(self, text='即時錄影偵測: ').pack()
+        # Button(self, text='開始偵測', command=self.real_time_obj_detection).pack()
         Label(self, text='本地相片偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_photo_obj_detection).pack()
-        Label(self, text='雲端相片偵測: ').pack()
-        Button(self, text='開始偵測', command=self.photo_obj_detection_cloud).pack()
+        # Label(self, text='雲端相片偵測: ').pack()
+        # Button(self, text='開始偵測', command=self.photo_obj_detection_cloud).pack()
         Label(self, text='跨面標籤偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_cross_photo_obj_detection).pack()
         Label(self, text='密集條碼偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_multi_code_detection).pack()
+        Button(self, text='退出', command=self.quit_program).pack()
+
         
         # 設置comboBox讓使用者選擇要用哪個資料夾
         self.box.pack()
-        
+
+    def quit_program(self):
+        sys.exit(0)
+
     def real_time_obj_detection(self):
         print('real_time_obj_detection')
         self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
         folder_name = self.folder_name.get().split(':')[1]
         root.destroy()
         #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True,folder_path=folder_name)
-
 
     def UI_photo_obj_detection(self):
         print('photo_obj_detection')
