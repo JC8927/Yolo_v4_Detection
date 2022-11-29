@@ -370,18 +370,23 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
     key_value_list=[]
     col_name_value_list = []
     now_label_id = 0
+    now_col_id = 0
     key_value_dict = sorted(key_value_dict,key=lambda d:d['label_id'])
+    key_value_dict = sorted(key_value_dict,key=lambda d:d['col_id'])
     for col in col_name_list:
         now_label_id = 0
+        now_col_id = 0
         col_name_value_list = []
         exist_flag=False
         for diction in key_value_dict:
-            if diction['col_id'] != now_label_id:
+            if diction['label_id'] != now_label_id:
                 now_label_id = now_label_id+1
+                now_col_id = 0
                 if exist_flag == False:
                     col_name_value_list.append('')
             for key in diction.keys():
                 if key == col:
+                    now_col_id = now_col_id+1
                     exist_flag=True
                     col_name_value_list.append(diction.get(key))
         if len(col_name_value_list)!= now_label_id+1:

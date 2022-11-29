@@ -595,6 +595,24 @@ def compare_col_data(imformation_list,col_name,config_list,config,col_data_idx_l
                 text_num = text_num+1
                 col_data_correct_flag=True
 
+                if i == (len(col_data_list)-1):
+                    saved_imformation_list = copy.deepcopy(imformation_list)
+                    saved_imformation_list = sorted(saved_imformation_list,key = lambda d:d['x'])
+                    if mode_check == "1":
+                        for i,imformation in enumerate(saved_imformation_list) :
+                            if imformation == imformation_list[idx]:
+                                idx = i
+                                break
+                        config_diction={'col':col_name,'text_num':text_num,'recorded_data_list':recorded_data_list,'text_length':text_len_list,'text_type':text_type_list,'col_name_idx':idx,'col_data_idx':recorded_data_idx_list,'col_data_idx_list':col_data_idx_list,'col_name_text':idx_col_data,'detect_mode':mode_check,'col_name_x':col_name_x,'col_name_y':col_name_y,'pass_num':pass_num}
+                        config=config_diction
+                        config_list.append(config_diction)
+                    elif mode_check == "0":
+                        config_diction={'col':col_name,'text_num':text_num,'recorded_data_list':recorded_data_list,'text_length':text_len_list,'text_type':text_type_list,'col_name_idx':idx,'col_data_idx':recorded_data_idx_list,'col_data_idx_list':col_data_idx_list,'col_name_text':idx_col_data,'detect_mode':mode_check,'col_name_x':col_name_x,'col_name_y':col_name_y,'pass_num':pass_num}
+                        config=config_diction
+                        config_list.append(config_diction)
+                    return recorded_data_list,recorded_data_idx_list
+
+
             elif check.upper()=="O" and text_num != 0:
                 saved_imformation_list = copy.deepcopy(imformation_list)
                 saved_imformation_list = sorted(saved_imformation_list,key = lambda d:d['x'])
@@ -613,6 +631,25 @@ def compare_col_data(imformation_list,col_name,config_list,config,col_data_idx_l
                 return recorded_data_list,recorded_data_idx_list
             elif check.upper()=="O" and text_num == 0:
                 break
+            elif i == (len(col_data_list)-1) and text_num != 0:
+                if i == (len(col_data_list)-1):
+                    saved_imformation_list = copy.deepcopy(imformation_list)
+                    saved_imformation_list = sorted(saved_imformation_list,key = lambda d:d['x'])
+                    if mode_check == "1":
+                        for i,imformation in enumerate(saved_imformation_list) :
+                            if imformation == imformation_list[idx]:
+                                idx = i
+                                break
+                        config_diction={'col':col_name,'text_num':text_num,'recorded_data_list':recorded_data_list,'text_length':text_len_list,'text_type':text_type_list,'col_name_idx':idx,'col_data_idx':recorded_data_idx_list,'col_data_idx_list':col_data_idx_list,'col_name_text':idx_col_data,'detect_mode':mode_check,'col_name_x':col_name_x,'col_name_y':col_name_y,'pass_num':pass_num}
+                        config=config_diction
+                        config_list.append(config_diction)
+                    elif mode_check == "0":
+                        config_diction={'col':col_name,'text_num':text_num,'recorded_data_list':recorded_data_list,'text_length':text_len_list,'text_type':text_type_list,'col_name_idx':idx,'col_data_idx':recorded_data_idx_list,'col_data_idx_list':col_data_idx_list,'col_name_text':idx_col_data,'detect_mode':mode_check,'col_name_x':col_name_x,'col_name_y':col_name_y,'pass_num':pass_num}
+                        config=config_diction
+                        config_list.append(config_diction)
+                    return recorded_data_list,recorded_data_idx_list
+
+            
             
 
         else:
@@ -956,7 +993,7 @@ def normal_compare(imformation_list,config,image_path)-> Union[List[dict],List[d
             y_config_list.append(saved_config)
     x_config_list = sorted(x_config_list,key= lambda d:d['col_name_x'])
     y_config_list = sorted(y_config_list,key= lambda d:d['col_name_y'])
-    while len(y_imformation_list) != 0:
+    while len(y_imformation_list) != 0 and len(y_config_list)!=0:
         max_idx=-1
         label_id=label_id+1
         for saved_config in y_config_list:
@@ -1010,7 +1047,7 @@ def normal_compare(imformation_list,config,image_path)-> Union[List[dict],List[d
         if max_idx == -1:
             break
     label_id = -1
-    while len(x_imformation_list) != 0:
+    while len(x_imformation_list) != 0 and len(x_config_list)!=0:
         max_idx=-1
         label_id=label_id+1
 
@@ -1111,7 +1148,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
                     match_text = None
                     if longest_match.size!=0:
                         match_text=col_data[longest_match.a:longest_match.a+longest_match.size]
-                    if match_text == col_data:
+                    if score>60:
                         if del_barcode_idx<idx:
                             del_barcode_idx = idx
                         diction={'col_name':col_name,'ocr_result':col_data,'barcode_result':barcode_text,'label_id':now_label_id,'barcode_bounding_poly':barcode_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':idx,'ocr_y':ocr_y,'bar_y':bar_y}
