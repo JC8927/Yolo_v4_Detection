@@ -1153,7 +1153,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
                     if score>60:
                         if del_barcode_idx<idx:
                             del_barcode_idx = idx
-                        diction={'col_name':col_name,'col_id':now_col_id,'ocr_result':col_data,'barcode_result':barcode_text,'label_id':now_label_id,'barcode_bounding_poly':barcode_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':idx,'ocr_y':ocr_y,'bar_y':bar_y}
+                        diction={'col_name':col_name,'ocr_result':col_data,'barcode_result':barcode_text,'label_id':now_label_id,'col_id':now_col_id,'color_idx':-1,'barcode_bounding_poly':barcode_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':idx,'ocr_y':ocr_y,'bar_y':bar_y}
                         match_diction={"del_barcode_idx":del_barcode_idx,'result_information':diction,'match_score':score}
                         match_text_list.append(match_diction)
                         #combined_result.append(diction)
@@ -1184,7 +1184,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
     
                     combined_result.append(highest_score_diction)
                 if both_exist_flag==False:
-                    diction={'col_name':col_name,'col_id':now_col_id,'ocr_result':col_data,'barcode_result':"no barcode result",'label_id':now_label_id,'barcode_bounding_poly':ocr_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':-1 ,'ocr_y':ocr_y,'bar_y':-1}
+                    diction={'col_name':col_name,'col_id':now_col_id,'label_id':now_label_id,"color_idx":-1,'ocr_result':col_data,'barcode_result':"no barcode result",'barcode_bounding_poly':ocr_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':-1 ,'ocr_y':ocr_y,'bar_y':-1}
                     combined_result.append(diction)
     return combined_result
             

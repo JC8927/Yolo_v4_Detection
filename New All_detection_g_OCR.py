@@ -391,8 +391,10 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
                 exist_flag=True
                 if diction['barcode_result'] != "no barcode result":
                     col_name_value_list.append(diction['barcode_result'])
+                    diction['color_idx'] = 0 #用barcode為結果設0
                 else:
                     col_name_value_list.append(diction['ocr_result'])
+                    diction['color_idx'] = 1 #用ocr為結果設1
         if len(col_name_value_list)!= now_label_id+1:
             col_name_value_list.append('')
         key_value_list.append(col_name_value_list)
