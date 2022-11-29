@@ -532,6 +532,105 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
 
     window.mainloop()
 
+
+def ui_generate_multi_label(key_value_list=[], exe_time=0, SN_List=[], img_path=''):
+    """
+    input:
+        key_value_dict: 與'PN', 'SN_QTY'對應的結果。
+        exe_time: 主程式執行時間。
+        SN_List: 一維碼、二維碼執行結果。
+    output:
+        show UI
+    """
+    col_name_list = ['PN', 'SN_QTY']
+    col_name_value_list = []
+    now_label_id = 0
+
+    window = Tk()
+
+    # 顯示當前圖片
+    img_open = Image.open(img_path)
+    img_open_width, img_open_height = img_open.size
+
+    # 如果要印出decode結果，則加長UI
+    if img_open_width / img_open_height <= 1:
+        height = 900
+        resize_factor = 300
+    else:
+        height = 800
+        resize_factor = 250
+
+    screenwidth = window.winfo_screenwidth()  # 屏幕宽度
+    screenheight = window.winfo_screenheight()  # 屏幕高度
+    width = 1000
+    x = int((screenwidth - width) / 2)
+    y = int((screenheight - height) / 2)
+    window.geometry(f'{width}x{height}+{x}+{y}')  # 大小以及位置
+
+    window.title("Code Reader")
+    window.minsize(width=200, height=300)
+    window.config(padx=20, pady=20)
+    window.resizable(width=False, height=False)
+    # window.config(bg="white")
+
+    # 設定ui名稱
+    label = Label(text="Code Reader", font=("Arial", 25, "bold"), padx=5, pady=5, fg="black")
+    label.pack()
+
+    # 如果有輸入key_value_list則印出
+    # 設定"OCR to CSV 結果"描述
+    label = Label(text="RESULT to CSV 結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
+    label.pack()
+
+    # 自動調整圖片大小
+
+    if img_open_width / img_open_height >= 1:
+        img_open = img_open.resize((int(img_open_width / img_open_height * resize_factor), resize_factor))
+
+    else:
+        img_open = img_open.resize((int(img_open_width / img_open_height * resize_factor), resize_factor))
+    img_png = ImageTk.PhotoImage(img_open)
+    label_img = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png).pack()
+
+    # 設定key&value對應表格
+    tree = ttk.Treeview(window, height=1, padding=(0, 0, 0, 0), columns=('PN', 'SN_QTY'))
+    tree.column("PN", width=200)
+    tree.column("SN_QTY", width=100)
+
+    tree.heading("PN", text="PN")
+    tree.heading("SN_QTY", text="SN_QTY")
+
+    # 匯入key&value辨識結果
+    tree.insert("", 0, values=key_value_list)  # 插入資料，
+    tree.pack()
+
+    # 如果有輸入decode_res_list則印出decode結果
+    if SN_List:
+        # 設定"解碼結果"描述
+        label = Label(text="解碼結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
+        label.pack()
+
+        # 設定解碼結果表格
+        text = Text(height=15, width=30, font=("Arial", 14), fg="black", state=NORMAL)
+
+        # 轉換解碼結果(List2Str)
+        decode_res = ''
+        for res in SN_List:
+            decode_res += str(res)
+            decode_res += '\n'
+        # 匯入解碼結果表格
+        text.insert(END, decode_res)
+
+        text.pack()
+
+    # 顯示辨識時間
+    label = Label(text=f"執行時間: {exe_time:.2} (s)", font=("Arial", 14, "bold"), padx=5, pady=25, fg="black")
+    label.pack()
+
+    Button(text='退出', command=quit_program).pack()
+
+    window.mainloop()
+
 def quit_program():
     sys.exit(0)
 
@@ -1191,6 +1290,14 @@ def multi_code_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,reti
     global os
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
     print("yolo initial done")
+
+    # 設定ui_generate_multi_label需要用到的參數
+    key_value_list = []
+    exe_time = 0
+    SN_List = []
+    img_path = ''
+
+
     mode_flag=-1
     # 資料夾裡面每個檔案
     dir_path = "./Input_dir/"
@@ -1200,6 +1307,9 @@ def multi_code_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,reti
     #mode_flag=input()
     for path in pathlist:  # path: 每張檔案的路徑
         # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
+
+        img_path = path
+
         sub_name = path.name[-4:]
         if path.name[-4:]!=".jpg":
             continue
@@ -1259,6 +1369,9 @@ def multi_code_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,reti
             SN = barcode_list[2:]
             print("P/N:"+PN)
             print("S/N數量:"+str(len(SN)))
+            key_value_list.append(PN)
+            key_value_list.append(len(SN))
+            SN_List = SN
             for text in SN:
                 print("S/N:"+text)
         else:
@@ -1296,6 +1409,7 @@ def multi_code_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,reti
         # 用start - end算出程式運行時間，並且print出來
         exe_time = end - start
 
+        ui_generate_multi_label(key_value_list, exe_time, SN_List, img_path)
         #####################################################
         # 印出UI
 
