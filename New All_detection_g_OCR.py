@@ -322,7 +322,9 @@ def google_detect_text(path):
                     if mark_flag:
                         cur_para_text=cur_para_text+" "
                         continue
-                    if cur_word_text.isalnum() and cur_para_text[-1].isalnum():
+                    if cur_word_text.isascii()==False:
+                        continue
+                    if cur_word_text.isalnum() and cur_word_text.isascii() and cur_para_text[-1].isalnum():
                         cur_para_text=cur_para_text+" "+cur_word_text
                     else:
                         cur_para_text=cur_para_text+cur_word_text
@@ -357,7 +359,7 @@ def compare(str1, str2):
     else:
         return False
 
-def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',img_path_2=''):
+def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',img_path_2='',ans_dict=[]):
     """
     input:
         key_value_dict: 與'PN', 'Date', 'QTY', 'LOT', 'COO'對應的結果。
@@ -380,31 +382,46 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
         now_col_id = 0
         col_name_value_list = []
         exist_flag=False
+        label_exist_flag=False
+        col_exist_flag=False
         for diction in combined_result:
             if diction['label_id'] != now_label_id:
                 now_label_id = now_label_id+1
-                if exist_flag == False:
+                if label_exist_flag == False:
                     col_name_value_list.append('')
+                label_exist_flag=False
+                col_exist_flag=False
                 now_col_id = 0
+
             if diction['col_id'] != now_col_id:
                 now_col_id = now_col_id+1
-                if exist_flag ==False:
+                if col_exist_flag ==False:
                     col_name_value_list.append('')
+                col_exist_flag=False
+            
             if diction['col_name'] == col:
-                
+                label_exist_flag=True
+                col_exist_flag=True
                 exist_flag=True
                 if diction['barcode_result'] != "no barcode result":
-                    col_name_value_list.append(diction['barcode_result'])
+                    col_name_value_list.append(diction['barcode_result']+" (barcode)")
                     diction['color_idx'] = 0 #用barcode為結果設0
                 else:
-                    col_name_value_list.append(diction['ocr_result'])
+                    col_name_value_list.append(diction['ocr_result']+" (OCR)")
                     diction['color_idx'] = 1 #用ocr為結果設1
+        if exist_flag == False:
+            col_name_value_list.append('')
 
         if len(col_name_value_list)!= (now_label_id+1)*(now_col_id+1):
-            for i in range(1,(now_label_id+1)*(now_col_id+1)):
+            for i in range(0,(now_label_id+1)*(now_col_id+1)):
                 col_name_value_list.append('')
         key_value_list.append(col_name_value_list)
     label_data_list=[]
+    new_lot_list=[]
+    if ans_dict!=[]:
+        for text in ans_dict:
+            new_lot_list.append(text['text']+"(OCR)")
+        key_value_list[3] = new_lot_list
     for i in range(len(key_value_list[0])):
         data_list=[]
         for col_value_list in key_value_list:
@@ -868,16 +885,21 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 para_ocr_result,word_ocr_result = google_detect_text(image_path)
                 imformation_list=key_to_value.data_preprocess(para_ocr_result)
                 config=None
+                config_2=None
                 save_config_path=dir_path
                 config_path=dir_path+"config.json"
+                config_2_path=dir_path+"no_col_config.json"
                 if os.path.isfile(config_path):
                     with open(config_path) as f:
                         config=json.load(f)['config']
+                if os.path.isfile(config_2_path):
+                    with open(config_2_path) as f:
+                        config_2=json.load(f)['config']
                 if config==None:
-                    result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path,image_path)
+                    result_list,ans_text_list=key_to_value.first_compare(imformation_list,save_config_path,image_path)
                 else:
-                    result_list,match_text_list=key_to_value.normal_compare(imformation_list,config,image_path)
-            
+                    result_list,ans_text_list=key_to_value.normal_compare(imformation_list,config,config_2,image_path)
+
                 #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
 
@@ -972,15 +994,20 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         start = time.time()
         imformation_list=key_to_value.data_preprocess(para_ocr_result)
         config=None
+        config_2=None
         save_config_path=dir_path
         config_path=dir_path+"config.json"
+        config_2_path=dir_path+"no_col_config.json"
         if os.path.isfile(config_path):
             with open(config_path) as f:
                 config=json.load(f)['config']
+        if os.path.isfile(config_2_path):
+            with open(config_2_path) as f:
+                config_2=json.load(f)['config']
         if config==None:
-            result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path,image_path)
+            result_list,ans_text_list=key_to_value.first_compare(imformation_list,save_config_path,image_path)
         else:
-            result_list,match_text_list=key_to_value.normal_compare(imformation_list,config,image_path)
+            result_list,ans_text_list=key_to_value.normal_compare(imformation_list,config,config_2,image_path)
       
         #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
@@ -1035,7 +1062,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         # cv2.imshow("img",img)
         cv2.waitKey(1)
         cv2.destroyAllWindows()
-        ui_generate(result_list, exe_time, combined_result,image_path)
+        ui_generate(result_list, exe_time, combined_result,image_path,ans_dict=ans_text_list)
 
         # ----release
         decode_list = []
@@ -1102,16 +1129,21 @@ def photo_obj_detection_cloud(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
         para_ocr_result, word_ocr_result = google_detect_text(image_path)
         start = time.time()
         imformation_list = key_to_value.data_preprocess(para_ocr_result)
-        config = None
-        save_config_path = dir_path
-        config_path = dir_path + "config.json"
+        config=None
+        config_2=None
+        save_config_path=dir_path
+        config_path=dir_path+"config.json"
+        config_2_path=dir_path+"no_col_config.json"
         if os.path.isfile(config_path):
             with open(config_path) as f:
-                config = json.load(f)['config']
+                config=json.load(f)['config']
+        if os.path.isfile(config_2_path):
+            with open(config_2_path) as f:
+                config_2=json.load(f)['config']
         if config == None:
-            result_list, match_text_list = key_to_value.first_compare(imformation_list, save_config_path, image_path)
+            result_list, ans_text_list = key_to_value.first_compare(imformation_list, save_config_path, image_path)
         else:
-            result_list, match_text_list = key_to_value.normal_compare(imformation_list, config, image_path)
+            result_list, ans_text_list = key_to_value.normal_compare(imformation_list, config, config_2,image_path)
 
         # result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
@@ -1164,7 +1196,7 @@ def photo_obj_detection_cloud(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
         # cv2.resizeWindow("img",crop_x,crop_y)
         # cv2.imshow("img",img)
         cv2.waitKey(1)
-        ui_generate(result_list, exe_time, combined_result, image_path)
+        ui_generate(result_list, exe_time, combined_result, image_path,ans_dict=ans_text_list)
 
         # ----release
         decode_list = []
