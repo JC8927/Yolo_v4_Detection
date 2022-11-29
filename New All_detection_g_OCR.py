@@ -383,11 +383,15 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
         for diction in combined_result:
             if diction['label_id'] != now_label_id:
                 now_label_id = now_label_id+1
-                now_col_id = 0
                 if exist_flag == False:
                     col_name_value_list.append('')
-            if diction['col_name'] == col:
+                now_col_id = 0
+            if diction['col_id'] != now_col_id:
                 now_col_id = now_col_id+1
+                if exist_flag ==False:
+                    col_name_value_list.append('')
+            if diction['col_name'] == col:
+                
                 exist_flag=True
                 if diction['barcode_result'] != "no barcode result":
                     col_name_value_list.append(diction['barcode_result'])
@@ -395,8 +399,10 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
                 else:
                     col_name_value_list.append(diction['ocr_result'])
                     diction['color_idx'] = 1 #用ocr為結果設1
-        if len(col_name_value_list)!= now_label_id+1:
-            col_name_value_list.append('')
+
+        if len(col_name_value_list)!= (now_label_id+1)*(now_col_id+1):
+            for i in range(1,(now_label_id+1)*(now_col_id+1)):
+                col_name_value_list.append('')
         key_value_list.append(col_name_value_list)
     label_data_list=[]
     for i in range(len(key_value_list[0])):

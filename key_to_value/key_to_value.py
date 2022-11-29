@@ -517,7 +517,7 @@ def compare_col_data(imformation_list,col_name,config_list,config,col_data_idx_l
                 else:
                     continue
     else:
-        num = 10
+        num = 15
         print("請輸入辨識模式 上下順序請輸入:1 預設為左右順序 直接Enter")
         mode_check = input()
         detect_mode = mode_check
@@ -538,6 +538,7 @@ def compare_col_data(imformation_list,col_name,config_list,config,col_data_idx_l
                     continue
         else:
             mode_check = "0"
+            detect_mode = "0"
             for data_idx in col_data_idx_list:
                 if data_idx+idx<len(imformation_list) and data_idx+idx>-1:
                     col_data = imformation_list[idx+data_idx]['text']
@@ -1028,6 +1029,8 @@ def normal_compare(imformation_list,config,image_path)-> Union[List[dict],List[d
 
             pre_saved_config = copy.deepcopy(saved_config)
             recorded_col_data_list,recorded_col_data_idx_list = compare_col_data(y_imformation_list,now_col_name,config_list,pre_saved_config,now_data_idx_list,now_idx,record_col_name,record_col_name_x,record_col_name_y,pass_num)
+            if recorded_col_data_list==None:
+                continue
             for i in range(len(recorded_col_data_list)):
                 col_data = recorded_col_data_list[i]
                 col_data_idx = recorded_col_data_idx_list[i]
@@ -1082,6 +1085,8 @@ def normal_compare(imformation_list,config,image_path)-> Union[List[dict],List[d
 
             pre_saved_config = copy.deepcopy(saved_config)
             recorded_col_data_list,recorded_col_data_idx_list = compare_col_data(x_imformation_list,now_col_name,config_list,pre_saved_config,now_data_idx_list,now_idx,record_col_name,record_col_name_x,record_col_name_y,pass_num)
+            if recorded_col_data_list==None:
+                continue
             for i in range(len(recorded_col_data_list)):
                 col_data = recorded_col_data_list[i]
                 col_data_idx = recorded_col_data_idx_list[i]
