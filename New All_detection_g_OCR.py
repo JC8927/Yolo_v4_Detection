@@ -370,12 +370,13 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
     key_value_list=[]
     col_name_value_list = []
     now_label_id = 0
+    key_value_dict = sorted(key_value_dict,key=lambda d:d['label_id'])
     for col in col_name_list:
         now_label_id = 0
         col_name_value_list = []
         exist_flag=False
         for diction in key_value_dict:
-            if diction['label_id'] != now_label_id:
+            if diction['col_id'] != now_label_id:
                 now_label_id = now_label_id+1
                 if exist_flag == False:
                     col_name_value_list.append('')
@@ -459,8 +460,8 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
         # img_open = img_open.resize((resize_factor, int(img_open_height / img_open_width * resize_factor)))
         img_open = img_open.resize((int(img_open_width / img_open_height * resize_factor), resize_factor))
     img_png = ImageTk.PhotoImage(img_open)
-    label_img = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png).pack()
-
+    label_img = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png)
+    label_img.pack()
     if img_path_2!='':
         # 顯示當前圖片
         img_open_2 = Image.open(img_path_2)
@@ -917,6 +918,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         # cv2.resizeWindow("img",crop_x,crop_y)
         # cv2.imshow("img",img)
         cv2.waitKey(1)
+        cv2.destroyAllWindows()
         ui_generate(result_list, exe_time, combined_result,image_path)
 
         # ----release
@@ -1374,7 +1376,7 @@ class InputFrame(Frame):  # 繼承Frame類
         self.root = master  # 定義內部變數root
         self.folder_name = StringVar()                          
         self.folder_name.set('')
-        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','siliconlab_box_4','skywork_box','skywork_disk','skywork_disk_1','skywork_disk_2','STM_disk','melexis_disk','multi_code','test'])
+        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','siliconlab_box_4','skywork_box','skywork_disk','melexis_disk_1','melexis_disk_2','STM_disk','multi_code','test'])
         self.createPage()
 
     def createPage(self):
