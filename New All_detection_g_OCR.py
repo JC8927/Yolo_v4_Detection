@@ -371,6 +371,8 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
     col_name_value_list = []
     now_label_id = 0
     now_col_id = 0
+    combined_result  = sorted(combined_result,key=lambda d:d['label_id'])
+    combined_result = sorted(combined_result,key=lambda d:d['col_id'])
     key_value_dict = sorted(key_value_dict,key=lambda d:d['label_id'])
     key_value_dict = sorted(key_value_dict,key=lambda d:d['col_id'])
     for col in col_name_list:
@@ -378,17 +380,19 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
         now_col_id = 0
         col_name_value_list = []
         exist_flag=False
-        for diction in key_value_dict:
+        for diction in combined_result:
             if diction['label_id'] != now_label_id:
                 now_label_id = now_label_id+1
                 now_col_id = 0
                 if exist_flag == False:
                     col_name_value_list.append('')
-            for key in diction.keys():
-                if key == col:
-                    now_col_id = now_col_id+1
-                    exist_flag=True
-                    col_name_value_list.append(diction.get(key))
+            if diction['col_name'] == col:
+                now_col_id = now_col_id+1
+                exist_flag=True
+                if diction['barcode_result'] != "no barcode result":
+                    col_name_value_list.append(diction['barcode_result'])
+                else:
+                    col_name_value_list.append(diction['ocr_result'])
         if len(col_name_value_list)!= now_label_id+1:
             col_name_value_list.append('')
         key_value_list.append(col_name_value_list)

@@ -520,6 +520,7 @@ def compare_col_data(imformation_list,col_name,config_list,config,col_data_idx_l
         num = 10
         print("請輸入辨識模式 上下順序請輸入:1 預設為左右順序 直接Enter")
         mode_check = input()
+        detect_mode = mode_check
         col_data_idx_list = [i for i in range(-num,num,1)]
         if mode_check == "1":
             for data_idx in col_data_idx_list:
@@ -1137,6 +1138,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
             if col_name in result:
                 both_exist_flag=False
                 ocr_bounding_poly = result['bounding_poly']
+                now_col_id = result['col_id']
                 col_data = result[col_name]
                 ocr_y = result['location']
                 for idx,barcode_result in enumerate(barcode_list):
@@ -1151,7 +1153,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
                     if score>60:
                         if del_barcode_idx<idx:
                             del_barcode_idx = idx
-                        diction={'col_name':col_name,'ocr_result':col_data,'barcode_result':barcode_text,'label_id':now_label_id,'barcode_bounding_poly':barcode_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':idx,'ocr_y':ocr_y,'bar_y':bar_y}
+                        diction={'col_name':col_name,'col_id':now_col_id,'ocr_result':col_data,'barcode_result':barcode_text,'label_id':now_label_id,'barcode_bounding_poly':barcode_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':idx,'ocr_y':ocr_y,'bar_y':bar_y}
                         match_diction={"del_barcode_idx":del_barcode_idx,'result_information':diction,'match_score':score}
                         match_text_list.append(match_diction)
                         #combined_result.append(diction)
@@ -1162,6 +1164,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
                     min_diff_y = 1000000
                     for diction in match_text_list:
                         result_imformation = diction['result_information']
+                        now_col_id = result_imformation['col_id']
                         ocr_y= result_imformation['ocr_y']
                         bar_y = result_imformation['bar_y']
                         now_diff_y = abs(ocr_y-bar_y)
@@ -1181,7 +1184,7 @@ def barcode_compare_ocr(result_list,dbr_decode_res):#要改
     
                     combined_result.append(highest_score_diction)
                 if both_exist_flag==False:
-                    diction={'col_name':col_name,'ocr_result':col_name+":"+col_data,'barcode_result':"no barcode result",'label_id':now_label_id,'barcode_bounding_poly':ocr_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':-1 ,'ocr_y':ocr_y,'bar_y':-1}
+                    diction={'col_name':col_name,'col_id':now_col_id,'ocr_result':col_data,'barcode_result':"no barcode result",'label_id':now_label_id,'barcode_bounding_poly':ocr_bounding_poly,'ocr_bounding_poly':ocr_bounding_poly,'del_barcode_idx':-1 ,'ocr_y':ocr_y,'bar_y':-1}
                     combined_result.append(diction)
     return combined_result
             
