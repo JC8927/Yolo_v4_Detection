@@ -567,7 +567,6 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
 
     window.mainloop()
 
-
 def ui_generate_multi_label(key_value_list=[], exe_time=0, SN_List=[], img_path=''):
     """
     input:
@@ -1082,137 +1081,6 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
     print("done")
 
 
-def photo_obj_detection_cloud(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False, folder_path=""):
-    # ----YOLO v4 init
-    global os
-    # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
-    print("yolo initial done")
-
-
-    mode_flag = -1
-    # 資料夾裡面每個檔案
-    dir_path = "C:/Users/shiii/我的雲端硬碟/photo_obj_detection_cloud_folder/"
-    dir_path = dir_path + folder_path + "/"
-    pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
-    # print("請選擇模式:1.單一label 2. multi label")
-    # mode_flag=input()
-    for path in pathlist:  # path: 每張檔案的路徑
-        # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
-        sub_name = path.name[-4:]
-        if path.name[-4:] != ".jpg":
-            continue
-        # 讀取拍攝好的照片(result_pic_orig.jpg)
-        img_path = os.path.join('.', path)
-        print(img_path)
-        img = mpimg.imread(img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        # 做sha_crap前處理
-        if sha_crap:
-            img = sha_crap_processing(img)
-
-        # 做retinex前處理
-        if retinex:
-            img = retinex_processing(img)
-
-        # 輸出前處理後的圖片
-        cv2.imwrite('./result_dir/result_pic_processing.jpg', img)
-
-        # googleOCR辨識
-        image_path = r'./result_dir/result_pic_processing.jpg'
-        print("目前照片:" + str(img_path))
-
-        # 輸出googleOCR辨識結果
-        result_path = './result_dir/result_txt.txt'
-        decode_result_path = './result_dir/decode_result_txt.txt'
-
-        f = open(result_path, 'w', encoding='utf-8')
-        fc = open(decode_result_path, 'w', encoding='utf-8')
-
-        para_ocr_result, word_ocr_result = google_detect_text(image_path)
-        start = time.time()
-        imformation_list = key_to_value.data_preprocess(para_ocr_result)
-        config=None
-        config_2=None
-        save_config_path=dir_path
-        config_path=dir_path+"config.json"
-        config_2_path=dir_path+"no_col_config.json"
-        if os.path.isfile(config_path):
-            with open(config_path) as f:
-                config=json.load(f)['config']
-        if os.path.isfile(config_2_path):
-            with open(config_2_path) as f:
-                config_2=json.load(f)['config']
-        if config == None:
-            result_list, ans_text_list = key_to_value.first_compare(imformation_list, save_config_path, image_path)
-        else:
-            result_list, ans_text_list = key_to_value.normal_compare(imformation_list, config, config_2,image_path)
-
-        # result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
-
-        # 讀取zbar解碼結果
-        decode_list = []
-
-        # dbr decode
-        dbr_decode_res = dbr_decode(image_path, False)
-        barcode_list = [barcode['text'] for barcode in dbr_decode_res]
-        # barcode_list = key_to_value.barcode_data_preprocess()
-        combined_result = key_to_value.barcode_compare_ocr(result_list, dbr_decode_res)
-        # key_to_value.draw_final_pic(combined_result,image_path)
-        # 整合zbar與dbr decode的結果
-        for dbr_result in barcode_list:
-            decode_list.append(dbr_result)
-
-        # 印出Google OCR結果
-        # print("OCR Text Part:\n")
-        ocr_text = []
-        for res in para_ocr_result:
-            ocr_text.append(res[1][0])
-            # f.write(res[1][0] + '\n')
-            # print(res)
-
-        # 印出Barcode/QRCode內容
-        # print("Barcode/QRCode Part:\n")
-        for decode in decode_list:
-            fc.write(decode + '\n')
-            # print(decode)
-
-        # OCR轉CSV
-        if toCSV:
-            toCSV_list = toCSV_processing(ocr_text)
-            # print(f"toCSV_list{toCSV_list}")
-
-        # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
-        end = time.time()
-
-        # 用start - end算出程式運行時間，並且print出來
-        exe_time = end - start
-
-        #####################################################
-        # 印出UI
-
-        # img = cv2.imread(image_path)
-        # img = img_resize(img)
-        # cv2.namedWindow("img", cv2.WINDOW_NORMAL)
-        # crop_y = int(1*img.shape[0])
-        # crop_x = int(1*img.shape[1])
-        # cv2.resizeWindow("img",crop_x,crop_y)
-        # cv2.imshow("img",img)
-        cv2.waitKey(1)
-        ui_generate(result_list, exe_time, combined_result, image_path,ans_dict=ans_text_list)
-
-        # ----release
-        decode_list = []
-        f.close()
-        fc.close()
-
-    #####################################################
-    # ----release
-    # f.close()
-    # fc.close()
-    # yolo_v4.sess.close()
-    cv2.destroyAllWindows()
-    print("done")
 
 def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False,folder_path=''):
     # ----YOLO v4 init
@@ -1495,6 +1363,427 @@ def multi_code_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,reti
     # yolo_v4.sess.close()
     cv2.destroyAllWindows()
     print("done")
+
+def photo_obj_detection_cloud(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False, folder_path=""):
+    # ----YOLO v4 init
+    global os
+    # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
+    print("yolo initial done")
+
+
+    mode_flag = -1
+    # 資料夾裡面每個檔案
+    dir_path = "C:/Users/shiii/我的雲端硬碟/photo_obj_detection_cloud_folder/"
+    dir_path = dir_path + folder_path + "/"
+    pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
+    # print("請選擇模式:1.單一label 2. multi label")
+    # mode_flag=input()
+    for path in pathlist:  # path: 每張檔案的路徑
+        # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
+        sub_name = path.name[-4:]
+        if path.name[-4:] != ".jpg":
+            continue
+        # 讀取拍攝好的照片(result_pic_orig.jpg)
+        img_path = os.path.join('.', path)
+        print(img_path)
+        img = mpimg.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        # 做sha_crap前處理
+        if sha_crap:
+            img = sha_crap_processing(img)
+
+        # 做retinex前處理
+        if retinex:
+            img = retinex_processing(img)
+
+        # 輸出前處理後的圖片
+        cv2.imwrite('./result_dir/result_pic_processing.jpg', img)
+
+        # googleOCR辨識
+        image_path = r'./result_dir/result_pic_processing.jpg'
+        print("目前照片:" + str(img_path))
+
+        # 輸出googleOCR辨識結果
+        result_path = './result_dir/result_txt.txt'
+        decode_result_path = './result_dir/decode_result_txt.txt'
+
+        f = open(result_path, 'w', encoding='utf-8')
+        fc = open(decode_result_path, 'w', encoding='utf-8')
+
+        para_ocr_result, word_ocr_result = google_detect_text(image_path)
+        start = time.time()
+        imformation_list = key_to_value.data_preprocess(para_ocr_result)
+        config=None
+        config_2=None
+        save_config_path=dir_path
+        config_path=dir_path+"config.json"
+        config_2_path=dir_path+"no_col_config.json"
+        if os.path.isfile(config_path):
+            with open(config_path) as f:
+                config=json.load(f)['config']
+        if os.path.isfile(config_2_path):
+            with open(config_2_path) as f:
+                config_2=json.load(f)['config']
+        if config == None:
+            result_list, ans_text_list = key_to_value.first_compare(imformation_list, save_config_path, image_path)
+        else:
+            result_list, ans_text_list = key_to_value.normal_compare(imformation_list, config, config_2,image_path)
+
+        # result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
+
+        # 讀取zbar解碼結果
+        decode_list = []
+
+        # dbr decode
+        dbr_decode_res = dbr_decode(image_path, False)
+        barcode_list = [barcode['text'] for barcode in dbr_decode_res]
+        # barcode_list = key_to_value.barcode_data_preprocess()
+        combined_result = key_to_value.barcode_compare_ocr(result_list, dbr_decode_res)
+        # key_to_value.draw_final_pic(combined_result,image_path)
+        # 整合zbar與dbr decode的結果
+        for dbr_result in barcode_list:
+            decode_list.append(dbr_result)
+
+        # 印出Google OCR結果
+        # print("OCR Text Part:\n")
+        ocr_text = []
+        for res in para_ocr_result:
+            ocr_text.append(res[1][0])
+            # f.write(res[1][0] + '\n')
+            # print(res)
+
+        # 印出Barcode/QRCode內容
+        # print("Barcode/QRCode Part:\n")
+        for decode in decode_list:
+            fc.write(decode + '\n')
+            # print(decode)
+
+        # OCR轉CSV
+        if toCSV:
+            toCSV_list = toCSV_processing(ocr_text)
+            # print(f"toCSV_list{toCSV_list}")
+
+        # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
+        end = time.time()
+
+        # 用start - end算出程式運行時間，並且print出來
+        exe_time = end - start
+
+        #####################################################
+        # 印出UI
+
+        # img = cv2.imread(image_path)
+        # img = img_resize(img)
+        # cv2.namedWindow("img", cv2.WINDOW_NORMAL)
+        # crop_y = int(1*img.shape[0])
+        # crop_x = int(1*img.shape[1])
+        # cv2.resizeWindow("img",crop_x,crop_y)
+        # cv2.imshow("img",img)
+        cv2.waitKey(1)
+        ui_generate(result_list, exe_time, combined_result, image_path,ans_dict=ans_text_list)
+
+        # ----release
+        decode_list = []
+        f.close()
+        fc.close()
+
+    #####################################################
+    # ----release
+    # f.close()
+    # fc.close()
+    # yolo_v4.sess.close()
+    cv2.destroyAllWindows()
+    print("done")
+
+def cross_photo_obj_detection_cloud(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False, folder_path=''):
+    # ----YOLO v4 init
+    global os
+    # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
+    # print("yolo initial done")
+
+    # 資料夾裡面每個檔案
+    dir_path = "C:/Users/shiii/我的雲端硬碟/photo_obj_detection_cloud_folder/"
+    dir_path_first = dir_path + folder_path + "/first/"
+    dir_path_second = dir_path + folder_path + "/second/"
+    first_img_name_list = os.listdir(dir_path_first)
+    second_img_name_list = os.listdir(dir_path_second)
+    first_save_config_path = dir_path_first
+    second_save_config_path = dir_path_second
+    pathlist_first = sorted(Path(dir_path_first).glob('*'))  # 用哪個資料夾裡的檔案
+    pathlist_second = sorted(Path(dir_path_second).glob('*'))
+    # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
+    start = time.time()
+    ocr_result = []
+
+    for first_img_name in first_img_name_list:  # path: 每張檔案的路徑
+        second_img = None
+        img_exist_flag = False
+        sub_name = first_img_name[-4:]
+        if sub_name != ".jpg":
+            continue
+        # 讀取第一張照片
+        first_img_path = dir_path_first + first_img_name
+        first_img = mpimg.imread(first_img_path)
+        first_img = cv2.cvtColor(first_img, cv2.COLOR_BGR2RGB)
+
+        # 讀取第二張照片
+        for second_img_name in second_img_name_list:
+            if second_img_name == first_img_name:
+                second_img_path = dir_path_second + second_img_name
+                second_img = mpimg.imread(second_img_path)
+                second_img = cv2.cvtColor(second_img, cv2.COLOR_BGR2RGB)
+
+                img_exist_flag = True
+        if img_exist_flag == False:
+            print("找不到相對應的另一面照片")
+            continue
+
+        # 輸出googleOCR辨識結果
+        result_path = './result_dir/result_txt.txt'
+        decode_result_path = './result_dir/decode_result_txt.txt'
+
+        f = open(result_path, 'w', encoding='utf-8')
+        fc = open(decode_result_path, 'w', encoding='utf-8')
+
+        first_para_ocr_result, first_word_ocr_result = google_detect_text(first_img_path)
+        second_para_ocr_result, second_word_ocr_result = google_detect_text(second_img_path)
+        start = time.time()
+        first_imformation_list = key_to_value.data_preprocess(first_para_ocr_result)
+        second_imformation_list = key_to_value.data_preprocess(second_para_ocr_result)
+        first_config = None
+        second_config = None
+        config_2 = None
+        first_config_path = first_save_config_path + "config.json"
+        second_config_path = second_save_config_path + "config.json"
+        config_2_path = first_save_config_path + "no_col_config.json"
+        if os.path.isfile(config_2_path):
+            with open(config_2_path) as f:
+                config_2 = json.load(f)['config']
+        if os.path.isfile(first_config_path):
+            with open(first_config_path) as f:
+                first_config = json.load(f)['config']
+        if os.path.isfile(second_config_path):
+            with open(second_config_path) as f:
+                second_config = json.load(f)['config']
+        if first_config == None:
+            first_result_list, first_match_text_list = key_to_value.first_compare(first_imformation_list,
+                                                                                  first_save_config_path,
+                                                                                  first_img_path)
+        else:
+            first_result_list, first_match_text_list = key_to_value.normal_compare(first_imformation_list, first_config,
+                                                                                   config_2, first_img_path)
+        if second_config == None:
+            second_result_list, second_match_text_list = key_to_value.first_compare(second_imformation_list,
+                                                                                    second_save_config_path,
+                                                                                    second_img_path)
+        else:
+            second_result_list, second_match_text_list = key_to_value.normal_compare(second_imformation_list,
+                                                                                     second_config, config_2,
+                                                                                     second_img_path)
+
+        # result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
+
+        # 讀取zbar解碼結果
+        decode_list = []
+
+        # dbr decode
+        first_dbr_decode_res = dbr_decode(first_img_path, False)
+        second_dbr_decode_res = dbr_decode(second_img_path, False)
+        first_barcode_list = [barcode['text'] for barcode in first_dbr_decode_res]
+        second_barcode_list = [barcode['text'] for barcode in second_dbr_decode_res]
+        # barcode_list = key_to_value.barcode_data_preprocess()
+        first_combined_result = key_to_value.barcode_compare_ocr(first_result_list, first_dbr_decode_res)
+        second_combined_result = key_to_value.barcode_compare_ocr(second_result_list, second_dbr_decode_res)
+        # key_to_value.draw_final_pic(first_combined_result,first_img_path)
+        # key_to_value.draw_final_pic(second_combined_result,second_img_path)
+        combined_result = first_combined_result + second_combined_result
+        result_list = first_result_list + second_result_list
+        # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
+        end = time.time()
+
+        # 用start - end算出程式運行時間，並且print出來
+        exe_time = end - start
+
+        #####################################################
+        # 印出UI
+        first_img = img_resize(first_img)
+        second_img = img_resize(second_img)
+        # cv2.namedWindow("first_img", cv2.WINDOW_NORMAL)
+        # crop_y = int(1*first_img.shape[0])
+        # crop_x = int(1*first_img.shape[1])
+        # cv2.resizeWindow("first_img",crop_x,crop_y)
+        # cv2.imshow("first_img",first_img)
+        # cv2.namedWindow("second_img", cv2.WINDOW_NORMAL)
+        # crop_y = int(1*second_img.shape[0])
+        # crop_x = int(1*second_img.shape[1])
+        # cv2.resizeWindow("second_img",crop_x,crop_y)
+        # cv2.imshow("second_img",second_img)
+        cv2.waitKey(1)
+        ui_generate(result_list, exe_time, combined_result, first_img_path, second_img_path)
+
+        # ----release
+        decode_list = []
+        f.close()
+        fc.close()
+
+    #####################################################
+    # ----release
+    # f.close()
+    # fc.close()
+    # yolo_v4.sess.close()
+    cv2.destroyAllWindows()
+    print("done")
+
+def multi_code_detection_cloud(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=False, retinex=False, folder_path=""):
+    # ----YOLO v4 init
+    global os
+    # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
+    print("yolo initial done")
+
+    # 設定ui_generate_multi_label需要用到的參數
+    key_value_list = []
+    exe_time = 0
+    SN_List = []
+    img_path = ''
+
+    mode_flag = -1
+    # 資料夾裡面每個檔案
+    dir_path = "C:/Users/shiii/我的雲端硬碟/photo_obj_detection_cloud_folder/"
+    dir_path = dir_path + folder_path + "/"
+    pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
+    # print("請選擇模式:1.單一label 2. multi label")
+    # mode_flag=input()
+    for path in pathlist:  # path: 每張檔案的路徑
+        # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
+
+        img_path = path
+
+        sub_name = path.name[-4:]
+        if path.name[-4:] != ".jpg":
+            continue
+        # 讀取拍攝好的照片(result_pic_orig.jpg)
+        img_path = os.path.join('.', path)
+        img = mpimg.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        # 做sha_crap前處理
+        if sha_crap:
+            img = sha_crap_processing(img)
+
+        # 做retinex前處理
+        if retinex:
+            img = retinex_processing(img)
+
+        # 輸出前處理後的圖片
+        cv2.imwrite('./result_dir/result_pic_processing.jpg', img)
+
+        # googleOCR辨識
+        image_path = r'./result_dir/result_pic_processing.jpg'
+        print("目前照片:" + str(img_path))
+
+        # 輸出googleOCR辨識結果
+        result_path = './result_dir/result_txt.txt'
+        decode_result_path = './result_dir/decode_result_txt.txt'
+
+        f = open(result_path, 'w', encoding='utf-8')
+        fc = open(decode_result_path, 'w', encoding='utf-8')
+
+        # para_ocr_result,word_ocr_result = google_detect_text(image_path)
+        start = time.time()
+        # imformation_list=key_to_value.data_preprocess(para_ocr_result)
+        # config=None
+        # save_config_path=dir_path
+        # config_path=dir_path+"config.json"
+        # if os.path.isfile(config_path):
+        #     with open(config_path) as f:
+        #         config=json.load(f)['config']
+        # if config==None:
+        #     result_list,match_text_list=key_to_value.first_compare(imformation_list,save_config_path,image_path)
+        # else:
+        #     result_list,match_text_list=key_to_value.normal_compare(imformation_list,config,image_path)
+
+        # result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
+
+        # 讀取zbar解碼結果
+        decode_list = []
+
+        # dbr decode
+        multi_flag = True
+        dbr_decode_res = dbr_decode(image_path, multi_flag=multi_flag)
+        if dbr_decode_res != []:
+            barcode_list = [barcode['text'] for barcode in dbr_decode_res]
+            PN = barcode_list[0]
+            SN = barcode_list[2:]
+            print("P/N:" + PN)
+            print("S/N數量:" + str(len(SN)))
+            key_value_list.append(PN)
+            key_value_list.append(len(SN))
+            SN_List = SN
+            for text in SN:
+                print("S/N:" + text)
+        else:
+            print("偵測失敗")
+            return
+        # barcode_list = key_to_value.barcode_data_preprocess()
+        # combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res)
+        # key_to_value.draw_final_pic(combined_result,image_path)
+        # 整合zbar與dbr decode的結果
+        # for dbr_result in barcode_list:
+        #     decode_list.append(dbr_result)
+
+        # 印出Google OCR結果
+        # print("OCR Text Part:\n")
+        # ocr_text=[]
+        # for res in para_ocr_result:
+        #     ocr_text.append(res[1][0])
+        # f.write(res[1][0] + '\n')
+        # print(res)
+
+        # 印出Barcode/QRCode內容
+        # print("Barcode/QRCode Part:\n")
+        # for decode in decode_list:
+        #     fc.write(decode + '\n')
+        # print(decode)
+
+        # # OCR轉CSV
+        # if toCSV:
+        #     toCSV_list = toCSV_processing(ocr_text)
+        # print(f"toCSV_list{toCSV_list}")
+
+        # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
+        end = time.time()
+
+        # 用start - end算出程式運行時間，並且print出來
+        exe_time = end - start
+
+        ui_generate_multi_label(key_value_list, exe_time, SN_List, img_path)
+        #####################################################
+        # 印出UI
+
+        # img = cv2.imread(image_path)
+        # img = img_resize(img)
+        # cv2.namedWindow("img", cv2.WINDOW_NORMAL)
+        # crop_y = int(1*img.shape[0])
+        # crop_x = int(1*img.shape[1])
+        # cv2.resizeWindow("img",crop_x,crop_y)
+        # cv2.imshow("img",img)
+        # cv2.waitKey(1)
+        # ui_generate(result_list, exe_time, combined_result,image_path)
+
+        # ----release
+        decode_list = []
+        f.close()
+        fc.close()
+
+    #####################################################
+    # ----release
+    # f.close()
+    # fc.close()
+    # yolo_v4.sess.close()
+    cv2.destroyAllWindows()
+    print("done")
+
 ###################################### 主UI #######################################
 
 from tkinter import *
@@ -1544,7 +1833,7 @@ class LoginPage(object):
 class MainPage(object):
     def __init__(self, master=None):
         self.root = master  # 定義內部變數root
-        self.root.geometry('%dx%d' % (400, 400))  # 設定視窗大小
+        self.root.geometry('%dx%d' % (550, 550))  # 設定視窗大小
         self.createPage()
 
     def createPage(self):
@@ -1584,7 +1873,7 @@ class InputFrame(Frame):  # 繼承Frame類
         self.root = master  # 定義內部變數root
         self.folder_name = StringVar()                          
         self.folder_name.set('')
-        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','siliconlab_box_4','skywork_box','skywork_disk','melexis_disk_1','melexis_disk_2','STM_disk','multi_code','test'])
+        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','skywork_box','skywork_disk','melexis_disk_1','melexis_disk_2','STM_disk','multi_code','test'])
         self.createPage()
 
     def createPage(self):
@@ -1594,13 +1883,17 @@ class InputFrame(Frame):  # 繼承Frame類
         Button(self, text='開始偵測', command=self.real_time_obj_detection).pack()
         Label(self, text='本地相片偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_photo_obj_detection).pack()
-        Label(self, text='雲端相片偵測: ').pack()
-        Button(self, text='開始偵測', command=self.photo_obj_detection_cloud).pack()
         Label(self, text='跨面標籤偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_cross_photo_obj_detection).pack()
         Label(self, text='密集條碼偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_multi_code_detection).pack()
         Button(self, text='退出', command=self.quit_program).pack()
+        Label(self, text='雲端相片偵測: ').pack()
+        Button(self, text='開始偵測', command=self.photo_obj_detection_cloud).pack()
+        Label(self, text='雲端跨面標籤偵測: ').pack()
+        Button(self, text='開始偵測', command=self.cross_photo_obj_detection_cloud).pack()
+        Label(self, text='雲端密集條碼偵測: ').pack()
+        Button(self, text='開始偵測', command=self.multi_code_detection_cloud).pack()
 
         
         # 設置comboBox讓使用者選擇要用哪個資料夾
@@ -1644,6 +1937,19 @@ class InputFrame(Frame):  # 繼承Frame類
         root.destroy()
         multi_code_detection(model_path, GPU_ratio=GPU_ratio, toCSV=True,folder_path=folder_name)
 
+    def cross_photo_obj_detection_cloud(self):
+        print('photo_obj_detection_cloud')
+        self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
+        folder_name = self.folder_name.get().split(':')[1]
+        root.destroy()
+        cross_photo_obj_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True, folder_path=folder_name)
+
+    def multi_code_detection_cloud(self):
+        print('photo_obj_detection_cloud')
+        self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
+        folder_name = self.folder_name.get().split(':')[1]
+        root.destroy()
+        multi_code_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True, folder_path=folder_name)
 class RecordFrame(Frame):  # 繼承Frame類
     def __init__(self, master=None):
         Frame.__init__(self, master)
