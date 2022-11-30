@@ -404,7 +404,7 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
                 col_exist_flag=True
                 exist_flag=True
                 if diction['barcode_result'] != "no barcode result":
-                    col_name_value_list.append(diction['barcode_result']+" (barcode)")
+                    col_name_value_list.append(diction['barcode_result']+" (both)")
                     diction['color_idx'] = 0 #用barcode為結果設0
                 else:
                     col_name_value_list.append(diction['ocr_result']+" (OCR)")
@@ -1266,8 +1266,13 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
             second_imformation_list=key_to_value.data_preprocess(second_para_ocr_result)
             first_config=None
             second_config=None
+            config_2=None
             first_config_path=first_save_config_path+"config.json"
             second_config_path=second_save_config_path+"config.json"
+            config_2_path=first_save_config_path+"no_col_config.json"
+            if os.path.isfile(config_2_path):
+                with open(config_2_path) as f:
+                    config_2=json.load(f)['config']
             if os.path.isfile(first_config_path):
                 with open(first_config_path) as f:
                     first_config=json.load(f)['config']
@@ -1277,11 +1282,11 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
             if first_config==None:
                 first_result_list,first_match_text_list=key_to_value.first_compare(first_imformation_list,first_save_config_path,first_img_path)
             else:
-                first_result_list,first_match_text_list=key_to_value.normal_compare(first_imformation_list,first_config,first_img_path)
+                first_result_list,first_match_text_list=key_to_value.normal_compare(first_imformation_list,first_config,config_2,first_img_path)
             if second_config==None:
                 second_result_list,second_match_text_list=key_to_value.first_compare(second_imformation_list,second_save_config_path,second_img_path)
             else:
-                second_result_list,second_match_text_list=key_to_value.normal_compare(second_imformation_list,second_config,second_img_path)
+                second_result_list,second_match_text_list=key_to_value.normal_compare(second_imformation_list,second_config,config_2,second_img_path)
         
             #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
