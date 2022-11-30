@@ -572,11 +572,11 @@ def ui_generate_multi_label(key_value_list=[], exe_time=0, SN_List=[], img_path=
 
     # 如果要印出decode結果，則加長UI
     if img_open_width / img_open_height <= 1:
-        height = 900
-        resize_factor = 300
-    else:
         height = 800
         resize_factor = 250
+    else:
+        height = 750
+        resize_factor = 200
 
     screenwidth = window.winfo_screenwidth()  # 屏幕宽度
     screenheight = window.winfo_screenheight()  # 屏幕高度
@@ -623,23 +623,26 @@ def ui_generate_multi_label(key_value_list=[], exe_time=0, SN_List=[], img_path=
     tree.pack()
 
     # 如果有輸入decode_res_list則印出decode結果
-    if SN_List:
-        # 設定"解碼結果"描述
-        label = Label(text="解碼結果:", font=("Arial", 14, "bold"), padx=5, pady=5, fg="black")
-        label.pack()
+    frame = Frame(window, height=10, width=20)  # 建立 Frame
 
-        # 設定解碼結果表格
-        text = Text(height=15, width=30, font=("Arial", 14), fg="black", state=NORMAL)
+    scrollbar = Scrollbar(frame)  # 將 Frame 裡放入 Scrollbar
+    scrollbar.pack(side='right', fill='y')  # 設定位置在右側，垂直填滿
 
-        # 轉換解碼結果(List2Str)
-        decode_res = ''
-        for res in SN_List:
-            decode_res += str(res)
-            decode_res += '\n'
-        # 匯入解碼結果表格
-        text.insert(END, decode_res)
+    # 在 Frame 裡放入 text，設定 yscrollcommand=scrollbar.set
+    text = Text(frame, height=10, width=20, yscrollcommand=scrollbar.set, font=("Arial", 14), fg="black",
+                state=NORMAL)
+    # 轉換解碼結果(List2Str)
+    decode_res = ''
+    for res in SN_List:
+        decode_res += str(res)
+        decode_res += '\n'
+    # 匯入解碼結果表格
+    text.insert(END, decode_res)
+    text.pack()
+    scrollbar.config(command=text.yview)    # 設定 scrollbar 綁定 text 的 yview
+    frame.pack()
 
-        text.pack()
+
 
     # 顯示辨識時間
     label = Label(text=f"執行時間: {exe_time:.2} (s)", font=("Arial", 14, "bold"), padx=5, pady=25, fg="black")
