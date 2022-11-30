@@ -835,7 +835,7 @@ def retinex_processing(img, retinex_mode='msrcp'):
     # 定義主功能函式
 ###################################### 主程式 #######################################
 
-def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,retinex=False):
+def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,retinex=False,folder_path=""):
     #----var
     frame_count = 0
     FPS = "0"
@@ -854,12 +854,14 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
     #----YOLO v4 init
     # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
 
-    print("請輸入目前標籤之資料夾名稱:")
-    folder_name = input()
-    dir_path = "./Input_dir/real_time_img_path/"+folder_name+"/"
+    # print("請輸入目前標籤之資料夾名稱:")
+    # folder_name = input()
+    # dir_path = "./Input_dir/real_time_img_path/"+folder_name+"/"
+    dir_path = "./Input_dir/real_time_img_path/"
+    dir_path = dir_path+folder_path+"/"
     if not os.path.isdir(dir_path):
         os.mkdir(dir_path)
-
+    pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
     decode_list = []
     while (cap.isOpened()):
 
@@ -870,9 +872,9 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyWindow("Preview_Window")
                 # 儲存原始照片
-                image_path='./Input_dir/real_time_img_path/'+folder_name+"/"+label_name+"_"+str(frame_num)+'.jpg'
+                img_path=dir_path+label_name+"_"+str(frame_num)+'.jpg'
                 frame_num = frame_num + 1
-                cv2.imwrite(image_path, pic)
+                cv2.imwrite(img_path, pic)
                 # 儲存yolo辨識照片
                 #cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
 
@@ -882,7 +884,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
                 # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
                 start = time.time()
-                para_ocr_result,word_ocr_result = google_detect_text(image_path)
+                para_ocr_result,word_ocr_result = google_detect_text(img_path)
                 imformation_list=key_to_value.data_preprocess(para_ocr_result)
                 config=None
                 config_2=None
@@ -896,9 +898,9 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                     with open(config_2_path) as f:
                         config_2=json.load(f)['config']
                 if config==None:
-                    result_list,ans_text_list=key_to_value.first_compare(imformation_list,save_config_path,image_path)
+                    result_list,ans_text_list=key_to_value.first_compare(imformation_list,save_config_path,img_path)
                 else:
-                    result_list,ans_text_list=key_to_value.normal_compare(imformation_list,config,config_2,image_path)
+                    result_list,ans_text_list=key_to_value.normal_compare(imformation_list,config,config_2,img_path)
 
                 #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
@@ -907,11 +909,11 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 decode_list = []
 
                 # dbr decode
-                dbr_decode_res = dbr_decode(image_path,False)
+                dbr_decode_res = dbr_decode(img_path,False)
                 barcode_list = [barcode['text'] for barcode in dbr_decode_res]
                 #barcode_list = key_to_value.barcode_data_preprocess()
                 combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res)
-                key_to_value.draw_final_pic(combined_result,image_path)
+                #key_to_value.draw_final_pic(combined_result,img_path)
                 # 整合zbar與dbr decode的結果
                 for dbr_result in barcode_list:
                     decode_list.append(dbr_result)
@@ -929,7 +931,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 # 設定ui主畫面
                 end = time.time()
                 exe_time = start - end
-                #ui_generate(result_list, exe_time, combined_result)
+                ui_generate(result_list, exe_time, combined_result,img_path=img_path,ans_dict=ans_text_list)
 
                 # ----release
                 decode_list = []
@@ -1582,8 +1584,8 @@ class InputFrame(Frame):  # 繼承Frame類
     def createPage(self):
         Label(self, text='Code Reader 功能選擇').pack()
         Label(self).pack()
-        # Label(self, text='即時錄影偵測: ').pack()
-        # Button(self, text='開始偵測', command=self.real_time_obj_detection).pack()
+        Label(self, text='即時錄影偵測: ').pack()
+        Button(self, text='開始偵測', command=self.real_time_obj_detection).pack()
         Label(self, text='本地相片偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_photo_obj_detection).pack()
         Label(self, text='雲端相片偵測: ').pack()
@@ -1606,7 +1608,7 @@ class InputFrame(Frame):  # 繼承Frame類
         self.folder_name.set(f'{self.box.current()}:{self.box.get()}')
         folder_name = self.folder_name.get().split(':')[1]
         root.destroy()
-        #real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True,folder_path=folder_name)
+        real_time_obj_detection(model_path,GPU_ratio=GPU_ratio,toCSV=True,folder_path=folder_name)
 
     def UI_photo_obj_detection(self):
         print('photo_obj_detection')
