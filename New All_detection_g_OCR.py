@@ -1872,7 +1872,7 @@ class InputFrame(Frame):  # 繼承Frame類
         self.root = master  # 定義內部變數root
         self.folder_name = StringVar()                          
         self.folder_name.set('')
-        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','skywork_box','skywork_disk','melexis_disk_1','melexis_disk_2','STM_disk','multi_code','test'])
+        self.box = ttk.Combobox(root, textvariable=self.folder_name, state='readonly', values=['siliconlab_box_1','siliconlab_box_2','siliconlab_box_3','skywork_box','skywork_disk','melexis_disk_1','melexis_disk_2','STM_disk','multi_code','sony_1','sony_2','KWE','test'])
         self.createPage()
 
     def createPage(self):
@@ -1886,13 +1886,14 @@ class InputFrame(Frame):  # 繼承Frame類
         Button(self, text='開始偵測', command=self.UI_cross_photo_obj_detection).pack()
         Label(self, text='密集條碼偵測: ').pack()
         Button(self, text='開始偵測', command=self.UI_multi_code_detection).pack()
-        Button(self, text='退出', command=self.quit_program).pack()
         Label(self, text='雲端相片偵測: ').pack()
         Button(self, text='開始偵測', command=self.photo_obj_detection_cloud).pack()
         Label(self, text='雲端跨面標籤偵測: ').pack()
         Button(self, text='開始偵測', command=self.cross_photo_obj_detection_cloud).pack()
         Label(self, text='雲端密集條碼偵測: ').pack()
         Button(self, text='開始偵測', command=self.multi_code_detection_cloud).pack()
+        Button(self, text='退出', command=self.quit_program).pack()
+
 
         
         # 設置comboBox讓使用者選擇要用哪個資料夾
