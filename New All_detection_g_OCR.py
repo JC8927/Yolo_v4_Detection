@@ -48,7 +48,6 @@ else:
 print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
 
 ################################# 設置套件環境 #################################
-
 # 設置pytesseract API位置
 #os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 #pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
@@ -56,8 +55,8 @@ print("Tensorflow version of {}: {}".format(__file__,tf.__version__))
 # 設置GOOGLE OCR API位置
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "code-reader-5-63f024a409ed.json"
 
-# 建立BarcodeReader
-BarcodeReader.init_license("t0076oQAAADLDNLLexPCL5vfn2vtVNtjVvYQzSHAmkcuhnLZhwoyd50yzV5xlNT6PYgMhdBsXn72R4cNUcOLv82zt0jv+NFJb2RQn/4Yi6Q==")
+# 建立BarcodeReader 2022/12/17日過期
+BarcodeReader.init_license("t0073oQAAAIFJD1SQQ0ijGMUtkrqlhwbpak+lzKgnkhHPN0Vb8AWeG+wSIj26GnBgkfvfZEm35KoOBhCE0NqrQzdmdzWTYD0N/98i9w==")
 reader = BarcodeReader()
 
 # Barcode reader setting
@@ -1950,6 +1949,7 @@ class InputFrame(Frame):  # 繼承Frame類
         folder_name = self.folder_name.get().split(':')[1]
         root.destroy()
         multi_code_detection_cloud(model_path, GPU_ratio=GPU_ratio, toCSV=True, folder_path=folder_name)
+
 class RecordFrame(Frame):  # 繼承Frame類
     def __init__(self, master=None):
         Frame.__init__(self, master)
