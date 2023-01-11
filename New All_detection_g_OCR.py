@@ -919,9 +919,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
                 # dbr decode
                 barcode_list = [barcode['text'] for barcode in dbr_decode_res]
-                #barcode_list = key_to_value.barcode_data_preprocess()
                 combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res,record_list)
-                #key_to_value.draw_final_pic(combined_result,img_path)
                 # 整合zbar與dbr decode的結果
                 for dbr_result in barcode_list:
                     decode_list.append(dbr_result)
