@@ -71,10 +71,12 @@ reader.update_runtime_settings(settings)
 def video_init(is_2_write=False,save_path=None):
     writer = None
     # cap = cv2.VideoCapture(r"http://192.168.0.133:8080/video")
-    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
-    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)#default 480
-    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)#default 640
-
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    height = cap.get(1024)#default 480
+    width = cap.get(768)#default 640
+    cap.set(3,1280)
+    cap.set(4,720)
+    cap.set(cv2.CAP_PROP_AUTOFOCUS,0)
     # width = 480
     # height = 640
     # cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -275,6 +277,11 @@ def google_detect_text(path):
     client = vision.ImageAnnotatorClient()
     #用於分割的標點符號
     split_mark_list=["(" , ")" , ":","<",">"]
+    #img = cv2.imread(path)
+    #ret, th1 = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+    #cv2.imshow('col',th1)
+    #cv2.waitKey(0)
+    #cv2.imwrite()
     with io.open(path, 'rb') as image_file:
         content = image_file.read()
 
@@ -367,7 +374,7 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
     output:
         show UI
     """
-    col_name_list=['PN', 'DATE', 'QTY', 'LOT', 'COO']
+    col_name_list=['PN', 'DATE', 'QTY', 'LOT','PRODUCT_ID','COO','SPECIAL','SN']
     key_value_list=[]
     col_name_value_list = []
     now_label_id = 0
@@ -403,7 +410,7 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
                 col_exist_flag=True
                 exist_flag=True
                 if diction['barcode_result'] != "no barcode result":
-                    col_name_value_list.append(diction['barcode_result']+" (both)")
+                    col_name_value_list.append(diction['ocr_result']+" (both)")
                     diction['color_idx'] = 0 #用barcode為結果設0
                 else:
                     col_name_value_list.append(diction['ocr_result']+" (OCR)")
@@ -417,10 +424,6 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
         key_value_list.append(col_name_value_list)
     label_data_list=[]
     new_col_list=[]
-    if ans_dict!=[]:
-        for text_diction in ans_dict:
-            new_lot_list.append(text['text']+"(OCR)")
-        key_value_list[3] = new_lot_list
     for i in range(len(key_value_list[0])):
         data_list=[]
         for col_value_list in key_value_list:
@@ -462,15 +465,15 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
 
     screenwidth = window.winfo_screenwidth()  # 屏幕宽度
     screenheight = window.winfo_screenheight()  # 屏幕高度
-    width = 1000
+    width = 200*(len(col_name_list)+1)
     x = int((screenwidth - width) / 2)
     y = int((screenheight - height) / 2)
     window.geometry(f'{width}x{height}+{x}+{y}')  # 大小以及位置
 
     window.title("Code Reader")
-    window.minsize(width=200, height=300)
+    window.minsize(width=600, height=300)
     window.config(padx=20, pady=20)
-    window.resizable(width=False, height=False)
+    window.resizable(width=True, height=True)
     # window.config(bg="white")
 
     # 設定ui名稱
@@ -510,18 +513,24 @@ def ui_generate(key_value_dict=[], exe_time=0, combined_result=[],img_path='',im
         label_img_2 = Label(bg='gray94', fg='blue', padx=5, pady=25, image=img_png_2).pack()
 
     # 設定key&value對應表格
-    tree = ttk.Treeview(window, height=len(label_data_list), padding=(10, 5, 20, 20), columns=('PN', 'Date', 'QTY', 'LOT', 'COO'))
+    tree = ttk.Treeview(window,height=len(label_data_list), padding=(10, 5, 20, 20), columns=('PN', 'Date', 'QTY', 'LOT',"PRODUCT_ID", 'COO','SPECIAL','SN'))
     tree.column("PN", width=200)
-    tree.column("Date", width=100)
-    tree.column("QTY", width=100)
+    tree.column("Date", width=200)
+    tree.column("QTY", width=200)
     tree.column("LOT", width=200)
-    tree.column("COO", width=100)
+    tree.column("PRODUCT_ID", width=200)
+    tree.column("COO", width=200)
+    tree.column("SPECIAL", width=200)
+    tree.column("SN", width=200)
 
     tree.heading("PN", text="PN")
     tree.heading("Date", text="Date")
     tree.heading("QTY", text="QTY")
     tree.heading("LOT", text="LOT")
+    tree.heading("PRODUCT_ID", text="PRODUCT ID")
     tree.heading("COO", text="COO")
+    tree.heading("SPECIAL", text="SPECIAL")
+    tree.heading("SN", text="SN")
 
     # 匯入key&value辨識結果
     for i,data_list in enumerate(label_data_list):
@@ -843,7 +852,10 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
     #----video streaming init
     cap, height, width, writer = video_init()
-
+    record_list=['QTY','LOT','DATE','PN','PRODUCT_ID','COO','SPECIAL','SN'] #紀錄事項會從config載入
+    record_dict={'QTY':['OTY',"Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty.", "Q’ ty", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["CONSISTS OF LOTS","Bulk ID","1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot Code", "Lot ID", "LOTNO", "Lot No.", "MLOT"],'DATE':["D","Trace code1","Trace codes","9D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Seal Date"],'PN':["Type","1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART","SUPP PROD ID", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part No.", "PartNo", "SPN"],'COO':["4L","Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "MADE IN", "Origin of"],'SPECIAL':["SPECIAL","Z"],'SN':['S/N',"SPECIAL"],"PRODUCT_ID":["PRODUCT","SPECIAL"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[],'SPECIAL':[],'SN':[],"PRODUCT_ID":[]} #紀錄比對事項
+    result_list=[]
     # FILENAME = 'myvideo.avi'
     # WIDTH = 1280
     # HEIGHT = 720
@@ -884,7 +896,7 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 # 用time的套件紀錄開始辨識的時間(用於計算程式運行時間)
                 start = time.time()
                 para_ocr_result,word_ocr_result = google_detect_text(img_path)
-                imformation_list=key_to_value.data_preprocess(para_ocr_result)
+                imformation_list=key_to_value.data_preprocess(para_ocr_result,record_list,record_dict)
                 config=None
                 config_2=None
                 save_config_path=dir_path
@@ -896,22 +908,19 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
                 if os.path.isfile(config_2_path):
                     with open(config_2_path) as f:
                         config_2=json.load(f)['config']
+                dbr_decode_res = dbr_decode(img_path,False)
                 if config==None:
-                    result_list,ans_text_list=key_to_value.first_compare(imformation_list,save_config_path,img_path)
+                    result_list,ans_text_list=key_to_value.first_compare(dbr_decode_res,imformation_list,save_config_path,img_path,record_list,record_dict,result_dict,result_list)
                 else:
-                    result_list,ans_text_list=key_to_value.normal_compare(imformation_list,config,config_2,img_path)
-
-                #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
-
+                    result_list,ans_text_list=key_to_value.normal_compare(dbr_decode_res,imformation_list,config,config_2,img_path,record_list,record_dict,result_dict,result_list)
 
                 # 讀取zbar解碼結果
                 decode_list = []
 
                 # dbr decode
-                dbr_decode_res = dbr_decode(img_path,False)
                 barcode_list = [barcode['text'] for barcode in dbr_decode_res]
                 #barcode_list = key_to_value.barcode_data_preprocess()
-                combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res)
+                combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res,record_list)
                 #key_to_value.draw_final_pic(combined_result,img_path)
                 # 整合zbar與dbr decode的結果
                 for dbr_result in barcode_list:
@@ -967,11 +976,8 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         # 讀取拍攝好的照片(result_pic_orig.jpg)
         img_path = os.path.join('.', path)
         img = cv2.imread(img_path)
-
-        # 做sha_crap前處理
-        if sha_crap:
-            img = sha_crap_processing(img)
-
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #ret, th1 = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
         # 做retinex前處理
         if retinex:
             img = retinex_processing(img)
@@ -993,7 +999,14 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
 
         para_ocr_result,word_ocr_result = google_detect_text(image_path)
         start = time.time()
-        imformation_list=key_to_value.data_preprocess(para_ocr_result)
+        record_list=['QTY','LOT','DATE','PN','PRODUCT_ID','COO','SPECIAL','SN'] #紀錄事項會從config載入
+        record_dict={'QTY':['OTY',"Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty.", "Q’ ty", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["CONSISTS OF LOTS","Bulk ID","1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot Code", "Lot ID", "LOTNO", "Lot No.", "MLOT"],'DATE':["D","Trace code1","Trace codes","9D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Seal Date"],'PN':["Type","1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART","SUPP PROD ID", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part No.", "PartNo", "SPN"],'COO':["4L","Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "MADE IN", "Origin of"],'SPECIAL':["SPECIAL","Z"],'SN':['S/N',"SPECIAL"],"PRODUCT_ID":["PRODUCT","SPECIAL"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+        result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[],'SPECIAL':[],'SN':[],"PRODUCT_ID":[]} #紀錄比對事項
+        result_list=[]
+        for col_list_name in record_dict.keys():
+            col_list = record_dict[col_list_name]
+            record_dict[col_list_name] = [col_name.upper() for col_name in col_list]
+        imformation_list=key_to_value.data_preprocess(para_ocr_result,record_list,record_dict)
         config=None
         config_2=None
         save_config_path=dir_path
@@ -1005,10 +1018,11 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         if os.path.isfile(config_2_path):
             with open(config_2_path) as f:
                 config_2=json.load(f)['config']
+        dbr_decode_res = dbr_decode(image_path,False)
         if config==None:
-            result_list,ans_text_list=key_to_value.first_compare(imformation_list,save_config_path,image_path)
+            result_list,ans_text_list=key_to_value.first_compare(dbr_decode_res,imformation_list,save_config_path,image_path,record_list,record_dict,result_dict,result_list)
         else:
-            result_list,ans_text_list=key_to_value.normal_compare(imformation_list,config,config_2,image_path)
+            result_list,ans_text_list=key_to_value.normal_compare(dbr_decode_res,imformation_list,config,config_2,image_path,record_list,record_dict,result_dict,result_list)
       
         #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
@@ -1020,7 +1034,7 @@ def photo_obj_detection(model_path,GPU_ratio=0.6,toCSV=True,sha_crap=False,retin
         dbr_decode_res = dbr_decode(image_path,False)
         barcode_list = [barcode['text'] for barcode in dbr_decode_res]
         #barcode_list = key_to_value.barcode_data_preprocess()
-        combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res)
+        combined_result = key_to_value.barcode_compare_ocr(result_list,dbr_decode_res,record_list)
         #key_to_value.draw_final_pic(combined_result,image_path)
         # 整合zbar與dbr decode的結果
         for dbr_result in barcode_list:
@@ -1088,6 +1102,10 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
     #print("yolo initial done")
 
     # 資料夾裡面每個檔案
+    record_list=['QTY','LOT','DATE','PN','PRODUCT_ID','COO','SPECIAL','SN'] #紀錄事項會從config載入
+    record_dict={'QTY':['OTY',"Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty.", "Q’ ty", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["CONSISTS OF LOTS","Bulk ID","1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot Code", "Lot ID", "LOTNO", "Lot No.", "MLOT"],'DATE':["D","Trace code1","Trace codes","9D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Seal Date"],'PN':["Type","1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART","SUPP PROD ID", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part No.", "PartNo", "SPN"],'COO':["4L","Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "MADE IN", "Origin of"],'SPECIAL':["SPECIAL","Z"],'SN':['S/N',"SPECIAL"],"PRODUCT_ID":["PRODUCT","SPECIAL"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
+    result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[],'SPECIAL':[],'SN':[],"PRODUCT_ID":[]} #紀錄比對事項
+    result_list=[]
     dir_path="./Input_dir/"
     dir_path_first = dir_path+folder_path+"/first/"  
     dir_path_second = dir_path+folder_path+"/second/" 
@@ -1130,8 +1148,8 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
             first_para_ocr_result,first_word_ocr_result = google_detect_text(first_img_path)
             second_para_ocr_result,second_word_ocr_result = google_detect_text(second_img_path)
             start = time.time()
-            first_imformation_list=key_to_value.data_preprocess(first_para_ocr_result)
-            second_imformation_list=key_to_value.data_preprocess(second_para_ocr_result)
+            first_imformation_list=key_to_value.data_preprocess(first_para_ocr_result,record_list,record_dict)
+            second_imformation_list=key_to_value.data_preprocess(second_para_ocr_result,record_list,record_dict)
             first_config=None
             second_config=None
             config_2=None
@@ -1148,13 +1166,14 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
                 with open(second_config_path) as f:
                     second_config=json.load(f)['config']
             if first_config==None:
-                first_result_list,first_match_text_list=key_to_value.first_compare(first_imformation_list,first_save_config_path,first_img_path)
+                first_result_list,first_match_text_list=key_to_value.first_compare(first_imformation_list,first_save_config_path,first_img_path,record_list,record_dict,result_dict,result_list)
             else:
-                first_result_list,first_match_text_list=key_to_value.normal_compare(first_imformation_list,first_config,config_2,first_img_path)
+                
+                first_result_list,first_match_text_list=key_to_value.normal_compare(first_imformation_list,first_config,config_2,first_img_path,record_list,record_dict,result_dict,result_list)
             if second_config==None:
-                second_result_list,second_match_text_list=key_to_value.first_compare(second_imformation_list,second_save_config_path,second_img_path)
+                second_result_list,second_match_text_list=key_to_value.first_compare(second_imformation_list,second_save_config_path,second_img_path,record_list,record_dict,result_dict,result_list)
             else:
-                second_result_list,second_match_text_list=key_to_value.normal_compare(second_imformation_list,second_config,config_2,second_img_path)
+                second_result_list,second_match_text_list=key_to_value.normal_compare(second_imformation_list,second_config,config_2,second_img_path,record_list,record_dict,result_dict,result_list)
         
             #result_list,match_text_list=ocr_result.ocr_to_result(para_ocr_result)
 
@@ -1168,12 +1187,13 @@ def cross_photo_obj_detection(model_path, GPU_ratio=0.6, toCSV=True, sha_crap=Fa
             first_barcode_list = [barcode['text'] for barcode in first_dbr_decode_res]
             second_barcode_list = [barcode['text'] for barcode in second_dbr_decode_res]
             #barcode_list = key_to_value.barcode_data_preprocess()
-            first_combined_result = key_to_value.barcode_compare_ocr(first_result_list,first_dbr_decode_res)
-            second_combined_result = key_to_value.barcode_compare_ocr(second_result_list,second_dbr_decode_res)
+            first_combined_result = key_to_value.barcode_compare_ocr(first_result_list,first_dbr_decode_res,record_list)
+            second_combined_result = key_to_value.barcode_compare_ocr(second_result_list,second_dbr_decode_res,record_list)
             #key_to_value.draw_final_pic(first_combined_result,first_img_path)
             #key_to_value.draw_final_pic(second_combined_result,second_img_path)
             combined_result = first_combined_result+second_combined_result
             result_list = first_result_list + second_result_list
+            result_list = key_to_value.check_result_list(result_list)
             # 用time的套件紀錄辨識完成的時間(用於計算程式運行時間)
             end = time.time()
 

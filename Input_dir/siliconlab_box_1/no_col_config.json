@@ -1,1 +1,1 @@
-{"config": {"col": "LOT", "text_length": 10, "text_type": "str", "col_name_idx": -1, "col_data_idx": 1, "col_data_idx_list": [1, 2, 17, 19, 20], "col_name_text": "", "col_data_text": "1006498601"}}
+{"config": [{"mode": "2", "col": "LOT", "LOT": "1006498601", "text_length": 10, "text_type": "str", "col_name_idx": -1, "col_data_idx": 1, "col_data_idx_list": [1, 2, 16, 17, 18], "col_name_text": "", "col_data_text": "1006498601"}]}
