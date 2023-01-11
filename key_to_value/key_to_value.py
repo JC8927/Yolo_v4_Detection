@@ -515,7 +515,7 @@ def compare_col_data(barcode_list,imformation_list,col_name,config_list,config,c
         config_col_data_idx_list = config['col_data_idx']
     #找 col_data_list
     
-    if now_data_idx_list != None:
+    if config != None:
         #左右模式
         if detect_mode =="0":
             for data_idx in col_data_idx_list:
@@ -629,7 +629,6 @@ def compare_col_data(barcode_list,imformation_list,col_name,config_list,config,c
             print(data)
             check=input()
             if check.upper()=="T":
-                cv2.destroyAllWindows()
                 text_len=len(col_data) #儲存長度參數
                 combined_result_diction = compare_barcode_data(idx_img,col_dict,barcode_list)
                 text_type=type(col_data).__name__
@@ -908,7 +907,6 @@ def first_compare(barcode_list,imformation_list,config_path,image_path,record_li
     result_list = check_result_list(result_list=result_list)
     result_list = sorted(result_list,key= lambda d:d['col_id'])
     result_list = sorted(result_list,key= lambda d:d['label_id'])
-
     #確認是否有遺漏
     no_col_config_list=[]
     for col_list_name in record_list:
@@ -928,6 +926,15 @@ def first_compare(barcode_list,imformation_list,config_path,image_path,record_li
                         now_col_name = result['col_name']
                         now_col_data = result[now_col_name]
                         now_bounding_poly = result['bounding_poly']
+                        min_x,max_x,min_y,max_y = find_drawing_spot(now_bounding_poly)
+                        idx_img=img.copy()
+                        cv2.rectangle(idx_img, (min_x, min_y), (max_x, max_y), (0,0,255),thickness=5)
+                        resize_idx_img=img_resize(idx_img)
+                        crop_y = int(1*resize_idx_img.shape[0])
+                        crop_x = int(1*resize_idx_img.shape[1])
+                        cv2.resizeWindow("show_col",crop_x,crop_y)
+                        cv2.imshow("show_col",resize_idx_img)
+                        cv2.waitKey(1)
                         print("請問是否愈擷取自"+str(now_col_name+":"+now_col_data)+"? 如果是請輸入:T")
                         truncation_flag = str(input())
                         if truncation_flag.upper()=="T":
@@ -951,6 +958,15 @@ def first_compare(barcode_list,imformation_list,config_path,image_path,record_li
                         now_bounding_poly = imformation['bounding_poly']
                         now_text_length = len(now_text)
                         if text_length == now_text_length:
+                            min_x,max_x,min_y,max_y = find_drawing_spot(now_bounding_poly)
+                            idx_img=img.copy()
+                            cv2.rectangle(idx_img, (min_x, min_y), (max_x, max_y), (0,0,255),thickness=5)
+                            resize_idx_img=img_resize(idx_img)
+                            crop_y = int(1*resize_idx_img.shape[0])
+                            crop_x = int(1*resize_idx_img.shape[1])
+                            cv2.resizeWindow("show_col",crop_x,crop_y)
+                            cv2.imshow("show_col",resize_idx_img)
+                            cv2.waitKey(1)
                             print("請問是否"+str(now_text)+"為"+str(col_list_name)+"的data? 如果是請輸入:T")
                             confirm = input()
                             if confirm.upper() == "T":

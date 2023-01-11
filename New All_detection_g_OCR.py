@@ -71,16 +71,13 @@ reader.update_runtime_settings(settings)
 def video_init(is_2_write=False,save_path=None):
     writer = None
     # cap = cv2.VideoCapture(r"http://192.168.0.133:8080/video")
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    height = cap.get(1024)#default 480
-    width = cap.get(768)#default 640
-    cap.set(3,1280)
-    cap.set(4,720)
+    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+    cap.set(3,3840) #可調整擷取影像之大小
+    cap.set(4,2160) 
     cap.set(cv2.CAP_PROP_AUTOFOCUS,0)
-    # width = 480
-    # height = 640
-    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print("Image Size: %d x %d" % (width, height))
 
     '''
     ref:https://docs.opencv.org/master/dd/d43/tutorial_py_video_display.html
@@ -96,7 +93,7 @@ def video_init(is_2_write=False,save_path=None):
     if is_2_write is True:
         #fourcc = cv2.VideoWriter_fourcc('x', 'v', 'i', 'd')
         #fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-        fourcc = cv2.VideoWriter_fourcc(*'divx')
+        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
         if save_path is None:
             save_path = 'demo.avi'
         writer = cv2.VideoWriter(save_path, fourcc, 30, (int(width), int(height)))
@@ -856,35 +853,27 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
     record_dict={'QTY':['OTY',"Q", "<QTY>", "Box Qty", "QTY", "QTY’", "QUANTITY", "Qty.", "Q’ ty", "Q’ty", "TOTALQTY", "Total Qty", "Unit Q’ty"],'LOT':["CONSISTS OF LOTS","Bulk ID","1T", "<LOT>", "L/C", "L/N", "LN", "LOT", "LOT NO", "LOT NUMBER", "LOT NUMBERS", "LOT#", "LOTPO", "Lot Code", "Lot ID", "LOTNO", "Lot No.", "MLOT"],'DATE':["D","Trace code1","Trace codes","9D", "Assembly Date Code", "D/C", "DATE", "DATE CODE", "DATECODE", "DC", "DCODE", "DTE", "Seal Date"],'PN':["Type","1P", "P", "<P/N>", "CPN", "MPN", "P/N", "P/N Name", "PART","SUPP PROD ID", "PART ID", "PART NO", "PART NUMBER", "PN", "PROD ID", "PROD NO", "PRODUCT ID", "Part No.", "PartNo", "SPN"],'COO':["4L","Assembled In", "Assembly Location", "C.O.O.", "COO", "COUNTRY OF ORIGIN", "MADE IN", "Origin of"],'SPECIAL':["SPECIAL","Z"],'SN':['S/N',"SPECIAL"],"PRODUCT_ID":["PRODUCT","SPECIAL"]} #使用record_list紀錄事項可能名稱 需由長到短排序 for match_text
     result_dict={'QTY':[],'LOT':[],'DATE':[],'PN':[],'COO':[],'SPECIAL':[],'SN':[],"PRODUCT_ID":[]} #紀錄比對事項
     result_list=[]
-    # FILENAME = 'myvideo.avi'
-    # WIDTH = 1280
-    # HEIGHT = 720
-    # FPS = 24.0
-    # fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    # out = cv2.VideoWriter(FILENAME, fourcc, FPS, (WIDTH, HEIGHT))
-    #----YOLO v4 init
-    # yolo_v4 = Yolo_v4(model_path,GPU_ratio=GPU_ratio)
 
-    # print("請輸入目前標籤之資料夾名稱:")
-    # folder_name = input()
-    # dir_path = "./Input_dir/real_time_img_path/"+folder_name+"/"
     dir_path = "./Input_dir/real_time_img_path/"
     dir_path = dir_path+folder_path+"/"
     if not os.path.isdir(dir_path):
         os.mkdir(dir_path)
     pathlist = sorted(Path(dir_path).glob('*'))  # 用哪個資料夾裡的檔案
     decode_list = []
+    cv2.namedWindow("Preview_Window", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Preview_Window",960,480)
     while (cap.isOpened()):
 
             ret, img = cap.read()
-            pic = numpy.array(img)
-            cv2.imshow('Preview_Window', img)
+            show_img = cv2.resize(img,(960,480))
+            cv2.imshow('Preview_Window',show_img)
             # ----按下Q鍵拍下、儲存一張照片
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(25) & 0xFF == ord('q'):
                 cv2.destroyWindow("Preview_Window")
                 # 儲存原始照片
                 img_path=dir_path+label_name+"_"+str(frame_num)+'.jpg'
                 frame_num = frame_num + 1
+                pic = numpy.array(img)
                 cv2.imwrite(img_path, pic)
                 # 儲存yolo辨識照片
                 #cv2.imwrite('./result_dir/result_pic_yolo.jpg', yolo_img)
@@ -941,7 +930,8 @@ def real_time_obj_detection(model_path,GPU_ratio=0.8,toCSV=True,sha_crap=False,r
 
                 # ----release
                 decode_list = []
-                
+                cv2.namedWindow("Preview_Window", cv2.WINDOW_NORMAL)
+                cv2.resizeWindow("Preview_Window",960,480)
                 #f.close()
                 #fc.close()
 
